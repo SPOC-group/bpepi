@@ -19,7 +19,7 @@ class SparseTensor:
         self.N = N
         self.T = T
 
-        edge_list = np.unique(contacts[:,:2],axis=0) #We get the contact network directly from the list of contacts
+        edge_list = np.unique(np.asarray(contacts, dtype = 'int')[:,:2],axis=0) #We get the contact network directly from the list of contacts
         self.num_direct_edges=len(edge_list)
 
         for e in edge_list:
@@ -30,7 +30,6 @@ class SparseTensor:
             self.idx_list.append(np.arange(c,c+d))
             c = c + d
 
-        self.idx_list = [ 1 for i, d in enumerate(self.degree)]
         self.values = np.full((self.num_direct_edges, T+1, T+1), fill_value)
 
     def init_like(self, Tensor, fill_value=0.):
@@ -63,6 +62,6 @@ class SparseTensor:
         """Returns d_i T x T matrices corresponding to the (*, i) entrances of the tensor
 
         Args:
-            i (int): Index of the receiving
+            i (int): Index of the receiving node
         """
         return self.values[self.idx_list[i]]
