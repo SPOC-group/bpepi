@@ -3,13 +3,13 @@ import numpy as np
 class SparseTensor:
     """Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor"""
 
-    def __init__(self, N = 0, T = 0, contacts = [], fill_value = 0., Tensor_to_copy=None):
+    def __init__(self, N = 0, T = 0, contacts = [], Tensor_to_copy=None):
         if Tensor_to_copy is None:
-            self.init(N, T, contacts, fill_value)
+            self.init(N, T, contacts)
         else:
-            self.init_like(Tensor_to_copy, fill_value)
+            self.init_like(Tensor_to_copy)
     
-    def init(self, N, T, contacts, fill_value = 0.):
+    def init(self, N, T, contacts):
         """Initialization of the tensor, given the contacts
 
         Args:
@@ -34,9 +34,10 @@ class SparseTensor:
             self.idx_list.append(np.arange(c,c+d))
             c = c + d
 
-        self.values = np.full((self.num_direct_edges, T+1, T+1), fill_value)
+        self.values = np.full((self.num_direct_edges, T+1, T+1), 1/( (T+1) * (T+1) ) )
 
-    def init_like(self, Tensor, fill_value=0.):
+
+    def init_like(self, Tensor):
         """Initialization of the tensor, given another tensor
 
         Args:
@@ -48,7 +49,19 @@ class SparseTensor:
         self.T = Tensor.T
         self.num_direct_edges=Tensor.num_direct_edges
         self.degree = Tensor.degree
-        self.values = np.full((self.num_direct_edges, self.T+1, self.T+1), fill_value)
+        self.values = np.full((self.num_direct_edges, self.T + 1, self.T + 1), 1.)
+    
+    def get_idx_ij(self, i, j):
+        """Returns the T x T matrix corresponding to the (i, j) entrance of the tensor
+
+        Args:
+            i (int): Index of the sending node
+            j (int): Index of the receiving node
+        """
+        idx_i = self.adj_list[j].index(i)
+        idx = self.idx_list[j][idx_i]
+
+        return idx
 
     def get_ij(self, i, j):
         """Returns the T x T matrix corresponding to the (i, j) entrance of the tensor
@@ -69,3 +82,10 @@ class SparseTensor:
             i (int): Index of the receiving node
         """
         return self.values[self.idx_list[i]]
+
+def compute_Lambdas(Lambda0,Lambda1,contacts):
+    T = Lambda0.T
+    for c in contacts:
+        idx = Lambda0.get_idx_ij(c[0],c[1])
+        Lambda0.values[idx] = Lambda0.values[idx] * (1-c[3]) * np.array( np.array(1*(i>c[2])*(c[2]>j) for i in range(T+1)) for j in range(T+1))
+        Lambda1.values[idx] = Lambda1.values[idx] * (1-c[3]) * np.array( np.array(1*(i>c[2]-1)*(c[2]>j) for i in range(T+1)) for j in range(T+1))
