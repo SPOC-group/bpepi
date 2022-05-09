@@ -4,6 +4,14 @@ class SparseTensor:
     """Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor"""
 
     def __init__(self, N = 0, T = 0, contacts = [], Tensor_to_copy=None):
+        """Construction of the tensor. If no tensor is given, then calls init(), otherwise calls init_like()
+
+        Args:
+            N (int): Number of nodes in the contact network
+            T (int): Value of the last simulation time
+            contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+            Tensor_to_copy (SparseTensor): SparseTensor to copy to create a new object
+        """
         if Tensor_to_copy is None:
             self.init(N, T, contacts)
         else:
@@ -15,7 +23,7 @@ class SparseTensor:
         Args:
             N (int): Number of nodes in the contact network
             T (int): Value of the last simulation time
-            contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij)
+            contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
         """
         self.idx_list = []
         self.adj_list = [ [] for _ in range(N) ]
@@ -52,7 +60,7 @@ class SparseTensor:
         self.values = np.full((self.num_direct_edges, self.T + 1, self.T + 1), 1.)
     
     def get_idx_ij(self, i, j):
-        """Returns the T x T matrix corresponding to the (i, j) entrance of the tensor
+        """Returns index corresponding to the (i, j) entrance of the tensor
 
         Args:
             i (int): Index of the sending node
@@ -84,6 +92,13 @@ class SparseTensor:
         return self.values[self.idx_list[i]]
 
 def compute_Lambdas(Lambda0,Lambda1,contacts):
+    """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
+
+    Args:
+        Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
+        Lambda1 (SparseTensor): SparseTensor useful to update the BP messages
+        contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+    """
     T = Lambda0.T
     for c in contacts:
         idx = Lambda0.get_idx_ij(c[0],c[1])
