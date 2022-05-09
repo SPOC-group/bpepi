@@ -2,9 +2,13 @@ import numpy as np
 
 class SparseTensor:
     """Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor"""
-    def __init__(self) -> None:
-        pass
 
+    def __init__(self, N = 0, T = 0, contacts = [], fill_value = 0., Tensor_to_copy=None):
+        if Tensor_to_copy is None:
+            self.init(N, T, contacts, fill_value)
+        else:
+            self.init_like(Tensor_to_copy, fill_value)
+    
     def init(self, N, T, contacts, fill_value = 0.):
         """Initialization of the tensor, given the contacts
 
