@@ -42,7 +42,7 @@ class SparseTensor:
             self.idx_list.append(np.arange(c,c+d))
             c = c + d
 
-        self.values = np.full((self.num_direct_edges, T+1, T+1), 1/( (T+1) * (T+1) ) )
+        self.values = np.full((self.num_direct_edges, T+2, T+2), 1/( (T+2) * (T+2) ) )
 
 
     def init_like(self, Tensor):
@@ -57,7 +57,7 @@ class SparseTensor:
         self.T = Tensor.T
         self.num_direct_edges=Tensor.num_direct_edges
         self.degree = Tensor.degree
-        self.values = np.full((self.num_direct_edges, self.T + 1, self.T + 1), 1.)
+        self.values = np.full((self.num_direct_edges, self.T + 2, self.T + 2), 1.)
     
     def get_idx_ij(self, i, j):
         """Returns index corresponding to the (i, j) entrance of the tensor
@@ -102,5 +102,5 @@ def compute_Lambdas(Lambda0,Lambda1,contacts):
     T = Lambda0.T
     for c in contacts:
         idx = Lambda0.get_idx_ij(c[0],c[1])
-        Lambda0.values[idx] = Lambda0.values[idx] * (1-c[3]) * np.array( np.array(1*(i>c[2])*(c[2]>j) for i in range(T+1)) for j in range(T+1))
-        Lambda1.values[idx] = Lambda1.values[idx] * (1-c[3]) * np.array( np.array(1*(i>c[2]-1)*(c[2]>j) for i in range(T+1)) for j in range(T+1))
+        Lambda0.values[idx] = Lambda0.values[idx] * (1-c[3]) * np.array( np.array(1*(i>c[2])*(c[2]>j) for i in range(T+2)) for j in range(T+2))
+        Lambda1.values[idx] = Lambda1.values[idx] * (1-c[3]) * np.array( np.array(1*(i>c[2]-1)*(c[2]>j) for i in range(T+2)) for j in range(T+2))
