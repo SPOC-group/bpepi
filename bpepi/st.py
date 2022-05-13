@@ -113,5 +113,5 @@ def compute_Lambdas(Lambda0,Lambda1,contacts):
     T = Lambda0.T
     for c in contacts:
         idx = Lambda0.get_idx_ij(c[0],c[1])
-        Lambda0.values[idx] = Lambda0.values[idx] * (1-c[3] * np.array( [np.array([1*(ti>c[2]-1)*(c[2]>tj) for tj in range(T+1)]) for ti in range(T+1)]))
-        Lambda1.values[idx] = Lambda1.values[idx] * (1-c[3] * np.array( [np.array([1*(ti>c[2])*(c[2]>tj) for tj in range(T+1)]) for ti in range(T+1)]))    
+        Lambda0.values[idx] = Lambda0.values[idx] * (1-c[3] * np.array( [np.array([1*(ti-1>=c[2])*(c[2]>tj-1) for ti in range(T+2)]) for tj in range(T+2)]))
+        Lambda1.values[idx] = Lambda1.values[idx] * (1-c[3] * np.array( [np.array([1*(ti-2>=c[2])*(c[2]>tj-1) for ti in range(T+2)]) for tj in range(T+2)]))
