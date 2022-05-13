@@ -1,4 +1,5 @@
 import numpy as np
+from st import SparseTensor, compute_Lambdas
 
 class FactorGraph:
     """_summary_"""
