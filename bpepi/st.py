@@ -58,6 +58,20 @@ class SparseTensor:
         self.num_direct_edges=Tensor.num_direct_edges
         self.degree = Tensor.degree
         self.values = np.full((self.num_direct_edges, self.T + 1, self.T + 1), 1.)
+        
+    def init_like2(self, Tensor):
+        """Initialization of the tensor, given another tensor
+
+        Args:
+            Tensor (SparseTensor): The Sparse Tensor object we want to copy
+        """
+        self.idx_list = Tensor.idx_list
+        self.adj_list = Tensor.adj_list
+        self.N = Tensor.N
+        self.T = Tensor.T
+        self.num_direct_edges=Tensor.num_direct_edges
+        self.degree = Tensor.degree
+        self.values = copy.deepcopy(Tensor.values)
     
     def get_idx_ij(self, i, j):
         """Returns index corresponding to the (i, j) entrance of the tensor
