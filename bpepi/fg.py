@@ -2,16 +2,16 @@ import numpy as np
 from st import SparseTensor, compute_Lambdas
 
 class FactorGraph:
-    """_summary_"""
+    """Class to update the BP messages for the SI model"""
 
     def __init__(self, N, T, contacts, obs, delta):
-        """_summary_
+        """Construction of the FactorGraph object, starting from contacts and observations
 
         Args:
-            N (_type_): _description_
-            T (_type_): _description_
-            contacts (_type_): _description_
-            observations (_type_): _description_
+            N (int): Number of nodes in the contact network
+            T (int): Time at which the simulation stops
+            contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+            observations (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
         """
         self.messages = SparseTensor(N, T, contacts)
         self.size = N
@@ -24,14 +24,20 @@ class FactorGraph:
 
         compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
 
-        self.observations = np.ones((N,T+1))  #creating the mask for observations
+        self.observations = np.ones((N,T+2))  #creating the mask for observations
         for o in obs:
-            if o[1].pi == 1:
+            if o[1] == 1:
                 self.observations[o[0]][o[2]+1:] = 0 
-            if o[1].ps == 1:
+            if o[1] == 0:
                 self.observations[o[0]][:o[2]+1] = 0
 
     def iterate(self):
+        """Single iteration of the BP algorithm
+
+        Returns:
+            difference (float): Maximum difference between the messages at two consecutive iterations
+        """
+        T=self.time
         old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
         order_nodes = np.arange(0,self.size) 
         np.random.shuffle(order_nodes) #shuffle order in which nodes are updated.
@@ -53,19 +59,22 @@ class FactorGraph:
                 self.messages.values[idx][0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs_j,axis=1),axis=0)[0]
                 self.messages.values[idx][T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*inc_lambda1[j][:,T+1]*gamma1_ki_j[0][T+1])
                 norm = self.messages.values[idx].sum() #normalize the messages
-                self.norms.append(norm)
                 self.messages.values[idx] = self.messages.values[idx]/norm
 
         difference = np.abs(old_msgs.values - self.messages.values).max()
 
         return difference
-    
+        
     def update(self, maxit=100, tol=1e-6):
-        """_summary_
+        """Multiple iterations of the BP algorithm through the method iterate()
 
         Args:
-            maxit (int, optional): _description_. Defaults to 100.
-            tol (double, optional): _description_. Defaults to 1e-6.
+            maxit (int, optional): Maximum number of iterations of BP. Defaults to 100.
+            tol (double, optional): Tolerance threshold for the difference between consecutive. Defaults to 1e-6.
+
+        Returns:
+            i (int): Iteration at which the algorithm stops
+            error (float): Error on the messages at the end of the iterations
         """
         i = 0
         error = 1
@@ -73,11 +82,15 @@ class FactorGraph:
             error = self.iterate()
             i+=1
         return i, error
-    
-    def marginals(self): #calculate marginals for infection times.
-        """_summary_"""
 
-        idx_list = self.messages.idx_list
+
+    def marginals(self): #calculate marginals for infection times.
+        """Computes the array of the BP marginals for each node
+
+        Returns:
+            marginals (np.array): Array of the BP marginals, of shape N x (T+2)
+        """
+
         marginals = []
         #we have one marginal (Tx1 vector) for each node.
         for n in range(self.size): #loop through all nodes
@@ -87,4 +100,3 @@ class FactorGraph:
             marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
             marginals.append(marg/marg.sum())
         return np.asarray(marginals)
-        

@@ -1,21 +1,23 @@
 import numpy as np
+import copy
 
 class SparseTensor:
     """Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor"""
 
-    def __init__(self, N = 0, T = 0, contacts = [], Tensor_to_copy=None):
+    def __init__(self, N = 0, T = 0, contacts = [], Tensor_to_copy=None, Which=None):
         """Construction of the tensor. If no tensor is given, then calls init(), otherwise calls init_like()
 
         Args:
             N (int): Number of nodes in the contact network
             T (int): Value of the last simulation time
-            contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+            contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
             Tensor_to_copy (SparseTensor): SparseTensor to copy to create a new object
         """
         if Tensor_to_copy is None:
             self.init(N, T, contacts)
         else:
-            self.init_like(Tensor_to_copy)
+            if (Which is None) : self.init_like(Tensor_to_copy)
+            else : self.init_like2(Tensor_to_copy)
     
     def init(self, N, T, contacts):
         """Initialization of the tensor, given the contacts
@@ -23,7 +25,7 @@ class SparseTensor:
         Args:
             N (int): Number of nodes in the contact network
             T (int): Value of the last simulation time
-            contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+            contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
         """
         self.idx_list = []
         self.adj_list = [ [] for _ in range(N) ]
@@ -36,13 +38,13 @@ class SparseTensor:
 
         for e in edge_list:
             self.adj_list[e[0]].append(e[1])
-        self.degree = np.array(len(a) for a in self.adj_list)
+        self.degree = np.array([len(a) for a in self.adj_list])
         c = 0
         for d in self.degree:
             self.idx_list.append(np.arange(c,c+d))
             c = c + d
 
-        self.values = np.full((self.num_direct_edges, T+1, T+1), 1/( (T+1) * (T+1) ) )
+        self.values = np.full((self.num_direct_edges, T+2, T+2), 1/( (T+2) * (T+2) ) )
 
 
     def init_like(self, Tensor):
@@ -57,8 +59,23 @@ class SparseTensor:
         self.T = Tensor.T
         self.num_direct_edges=Tensor.num_direct_edges
         self.degree = Tensor.degree
-        self.values = np.full((self.num_direct_edges, self.T + 1, self.T + 1), 1.)
+        self.values = np.full((self.num_direct_edges, self.T + 2, self.T + 2), 1.)
     
+
+    def init_like2(self, Tensor):
+        """Initialization of the tensor, given another tensor
+
+        Args:
+            Tensor (SparseTensor): The Sparse Tensor object we want to copy
+        """
+        self.idx_list = Tensor.idx_list
+        self.adj_list = Tensor.adj_list
+        self.N = Tensor.N
+        self.T = Tensor.T
+        self.num_direct_edges=Tensor.num_direct_edges
+        self.degree = Tensor.degree
+        self.values = copy.deepcopy(Tensor.values)
+
     def get_idx_ij(self, i, j):
         """Returns index corresponding to the (i, j) entrance of the tensor
 
@@ -108,7 +125,7 @@ def compute_Lambdas(Lambda0,Lambda1,contacts):
     Args:
         Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
         Lambda1 (SparseTensor): SparseTensor useful to update the BP messages
-        contacts (np.array): Array of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+        contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
     """
     T = Lambda0.T
     for c in contacts:
