@@ -139,13 +139,13 @@ def create_data_obs(flag_sources, flag_obs, n_sim, N, d, lam,n_iter, pseed):
     data_obs["marginal0"] = []
     data_obs["sim"] = []
     data_obs["T_table"] = []
-    data_obs["obs_table"] = []#np.zeros((n_M, n_sim, N))
+    #data_obs["obs_table"] = []#np.zeros((n_M, n_sim, N))
 
     return data_obs
 
 
 def fill_data_obs(
-    data_obs, f, status_nodes, T, it, e, init, obs_table, M, S, sim, flag_sources, flag_obs
+    data_obs, f, status_nodes, T, it, e, init, M, S, sim, flag_sources, flag_obs
 ):
     Bs = f.marginals()
     Ms0 = Bs[:,0]
@@ -153,7 +153,7 @@ def fill_data_obs(
     ti_str = ti_star(Ss)
 
     data_obs["T_table"].append(T)
-    data_obs["obs_table"].append( obs_table)
+    #data_obs["obs_table"].append( obs_table)
     if (flag_obs) : data_obs["rho"].append( M )
     else : data_obs["# obs"].append( M )
     if (flag_sources) : data_obs["delta"].append( S )
@@ -222,18 +222,19 @@ def fill_data_obs_it(data_obs_it, f, status_nodes, T, it, e, init, M, S, tol, n_
     elif (it == n_iter): data_obs_it["converged"].extend(["no"]*n_it_print)
     data_obs_it["logL"].append( f.loglikelihood() )
 
-def sim_and_fill(f, data_obs, data_obs_it, list_obs, ti_list_obs, n_iter, tol, print_it, status_nodes, T, init, M, S, iter_space, sim, flag_sources, flag_obs):
+def sim_and_fill(f, data_obs, data_obs_it, list_obs, n_iter, tol, print_it, status_nodes, T, init, M, S, iter_space, sim, flag_sources, flag_obs):
     for it in range(n_iter):
-        e0 = f.update()
+        e0 = f.iterate()
         if e0 < tol:
             break
     if (e0 > tol) : warnings.warn("Warning... Initialization is not converging")
-    f.reset_observations(list_obs)
+    f.reset_obs(list_obs)
+
     e = np.nan
     n_it_print = 1
     if (print_it) : fill_data_obs_it(data_obs_it, f, status_nodes, T, 0, e, init, M, S, tol, n_iter, n_it_print, sim, flag_sources, flag_obs )
     for it in range(n_iter):
-        e = f.update()
+        e = f.iterate()
         if (print_it and (((it+1)%iter_space ==0) or (e < tol or (it+1) == n_iter)) ):
             n_it_print = n_it_print + 1
             fill_data_obs_it(data_obs_it, f, status_nodes, T, it+1, e, init, M, S, tol, n_iter, n_it_print, sim, flag_sources, flag_obs )
@@ -246,7 +247,6 @@ def sim_and_fill(f, data_obs, data_obs_it, list_obs, ti_list_obs, n_iter, tol, p
         it + 1,
         e,
         init,
-        ti_list_obs,
         M,
         S,
         sim,
@@ -640,11 +640,11 @@ if __name__ == "__main__":
                 T = len(status_nodes) - 1
                 contacts = generate_contacts(g, T, lam)
                 if (args.rho[0] == -1):
-                    list_obs, ti_list_obs = generate_M_obs(status_nodes, M=M)              
-                    list_obs_all, _ = generate_M_obs(status_nodes, M=N)
+                    list_obs = generate_M_obs(status_nodes, M=M)              
+                    list_obs_all = generate_M_obs(status_nodes, M=N)
                 else:
-                    list_obs, ti_list_obs = generate_obs(status_nodes, frac_obs=M)              
-                    list_obs_all, _ = generate_obs(status_nodes, frac_obs=1)
+                    list_obs = generate_obs(status_nodes, frac_obs=M)              
+                    list_obs_all = generate_obs(status_nodes, frac_obs=1)
 
                 f_rnd = FactorGraph(
                     N=N,
@@ -661,8 +661,8 @@ if __name__ == "__main__":
                     delta=pseed
                 )
 
-                sim_and_fill(f_rnd, data_obs, data_obs_it, list_obs, ti_list_obs, n_iter, tol, print_it, status_nodes, T, "rnd", M, S, iter_space, sim, flag_sources, flag_obs)
-                sim_and_fill(f_informed, data_obs, data_obs_it, list_obs, ti_list_obs, n_iter, tol, print_it, status_nodes, T, "inf", M, S, iter_space, sim, flag_sources, flag_obs)
+                sim_and_fill(f_rnd, data_obs, data_obs_it, list_obs, n_iter, tol, print_it, status_nodes, T, "rnd", M, S, iter_space, sim, flag_sources, flag_obs)
+                sim_and_fill(f_informed, data_obs, data_obs_it, list_obs, n_iter, tol, print_it, status_nodes, T, "inf", M, S, iter_space, sim, flag_sources, flag_obs)
                 print(
                     f"\r S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
                 )
@@ -792,8 +792,8 @@ if __name__ == "__main__":
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(int)
             file_name = "data_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
 
-    if (print_it) : saveObj = (data_frame, data_frame_it, np.array(data_obs["marginal0"]), data_obs["obs_table"])
-    else : saveObj = (data_frame,np.array(data_obs["marginal0"]), data_obs["obs_table"])
+    if (print_it) : saveObj = (data_frame, data_frame_it, np.array(data_obs["marginal0"]))
+    else : saveObj = (data_frame,np.array(data_obs["marginal0"]))
 
     with lzma.open(save_dir + file_name, "wb") as f:
         pickle.dump(saveObj, f)

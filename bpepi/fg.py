@@ -11,7 +11,7 @@ class FactorGraph:
             N (int): Number of nodes in the contact network
             T (int): Time at which the simulation stops
             contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
-            observations (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
+            obs (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
         """
         self.messages = SparseTensor(N, T, contacts)
         self.size = N
@@ -122,7 +122,7 @@ class FactorGraph:
             gamma1_ki = np.reshape(np.prod(np.sum(inc_lambda1*inc_msgs,axis=1),axis=0),(1,T+2))
             dummy_array = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(gamma1_ki - gamma0_ki)))
             dummy_array[0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs,axis=1),axis=0)[0]
-            dummy_array[T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*inc_lambda1[j][:,T+1]*gamma1_ki[0][T+1])
+            dummy_array[T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*gamma1_ki[0][T+1])
             log_zi = log_zi + dummy_array.sum() #normalize the messages
 
         log_zij = 0.
@@ -134,3 +134,17 @@ class FactorGraph:
             marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
             log_zij = log_zij + 0.5*np.log(marg.sum())
         return log_zi - log_zij
+
+    def reset_obs(self, obs):
+        """Resets the observations, starting from the obs list
+        
+        Args:
+            obs (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
+
+        """
+        self.observations = np.ones((self.size,self.time+2))  #creating the mask for observations
+        for o in obs:
+            if o[1] == 1:
+                self.observations[o[0]][o[2]+1:] = 0 
+            if o[1] == 0:
+                self.observations[o[0]][:o[2]+1] = 0
