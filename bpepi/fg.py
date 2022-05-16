@@ -39,11 +39,12 @@ class FactorGraph:
         """
         T=self.time
         old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
+        #old_values = self.messages.values
         order_nodes = np.arange(0,self.size) 
         np.random.shuffle(order_nodes) #shuffle order in which nodes are updated.
         for i in order_nodes:
-            inc_indices, out_indices = old_msgs.get_all_indices(i)
-            inc_msgs = old_msgs.get_neigh_i(i)
+            inc_indices, out_indices = old_msgs.get_all_indices(i) #inc_indices, out_indices = self.messages.get_all_indices(i) 
+            inc_msgs = old_msgs.get_neigh_i(i) #inc_msgs = self.messages.get_neigh_i(i)
             inc_lambda0 = self.Lambda0.get_neigh_i(i)
             inc_lambda1 = self.Lambda1.get_neigh_i(i)
             order_edges = np.arange(0,len(out_indices)) #shuffle order in which outoing messages are updated for each node.
@@ -84,7 +85,7 @@ class FactorGraph:
         return i, error
 
 
-    def marginals(self): #calculate marginals for infection times.
+    def marginals(self):
         """Computes the array of the BP marginals for each node
 
         Returns:
@@ -100,3 +101,36 @@ class FactorGraph:
             marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
             marginals.append(marg/marg.sum())
         return np.asarray(marginals)
+
+    def loglikelihood(self): 
+        """Computes the LogLikelihood from the BP messages
+
+        Returns:
+            logL (float): LogLikelihood 
+        """
+        T=self.time
+
+        log_zi = 0.
+        dummy_array = np.zeros((1,T+2))
+        for i in range(self.size):
+            inc_indices, out_indices = self.messages.get_all_indices(i) 
+            inc_msgs = self.messages.get_neigh_i(i)
+            inc_lambda0 = self.Lambda0.get_neigh_i(i)
+            inc_lambda1 = self.Lambda1.get_neigh_i(i)
+
+            gamma0_ki = np.reshape(np.prod(np.sum(inc_lambda0*inc_msgs,axis=1),axis=0),(1,T+2))
+            gamma1_ki = np.reshape(np.prod(np.sum(inc_lambda1*inc_msgs,axis=1),axis=0),(1,T+2))
+            dummy_array = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(gamma1_ki - gamma0_ki)))
+            dummy_array[0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs,axis=1),axis=0)[0]
+            dummy_array[T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*inc_lambda1[j][:,T+1]*gamma1_ki[0][T+1])
+            log_zi = log_zi + dummy_array.sum() #normalize the messages
+
+        log_zij = 0.
+        #we have one marginal (Tx1 vector) for each node.
+        for n in range(self.size): #loop through all nodes
+            inc_indices, out_indices = self.messages.get_all_indices(n)
+            inc_msg = self.messages.values[inc_indices[0]] #b_i(t_i) is the same regardless of which non directed edge (ij), j \in\partial i we pick, so long as we sum over j. 
+            out_msg = self.messages.values[out_indices[0]]
+            marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
+            log_zij = log_zij + 0.5*np.log(marg.sum())
+        return log_zi - log_zij
