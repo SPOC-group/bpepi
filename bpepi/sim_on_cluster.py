@@ -770,27 +770,27 @@ if __name__ == "__main__":
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(float)
             data_frame[s] = data_frame[s].astype(float)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(float)
-            file_name = "data_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}.xz".format(graph, N, d, S,lam,M)
         else:
             data_frame[o] = data_frame[o].astype(float)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(float)
             data_frame[s] = data_frame[s].astype(int)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(int)
-            file_name = "data_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}.xz".format(graph, N, d, S,lam,M)
     else:
         if (flag_sources):
             data_frame[o] = data_frame[o].astype(int)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(int)
             data_frame[s] = data_frame[s].astype(float)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(float)
-            file_name = "data_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
 
         else:
             data_frame[o] = data_frame[o].astype(int)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(int)
             data_frame[s] = data_frame[s].astype(int)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(int)
-            file_name = "data_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
 
     if (print_it) : saveObj = (data_frame, data_frame_it, np.array(data_obs["marginal0"]))
     else : saveObj = (data_frame,np.array(data_obs["marginal0"]))
