@@ -499,7 +499,7 @@ def MSE(B, ti_inferred):
     """
     mse = np.array(
         [
-            np.array([b * (ti - t) ** 2 for t, b in enumerate(B[i])]).sum()
+            np.array([b * (ti - (t-1)) ** 2 for t, b in enumerate(B[i])]).sum()
             for i, ti in enumerate(ti_inferred)
         ]
     ).mean()
