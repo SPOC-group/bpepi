@@ -41,14 +41,14 @@ class FactorGraph:
         old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
         #old_values = self.messages.values
         order_nodes = np.arange(0,self.size) 
-        np.random.shuffle(order_nodes) #shuffle order in which nodes are updated.
+        #np.random.shuffle(order_nodes) #shuffle order in which nodes are updated.
         for i in order_nodes:
             inc_indices, out_indices = old_msgs.get_all_indices(i) #inc_indices, out_indices = self.messages.get_all_indices(i) 
             inc_msgs = old_msgs.get_neigh_i(i) #inc_msgs = self.messages.get_neigh_i(i)
             inc_lambda0 = self.Lambda0.get_neigh_i(i)
             inc_lambda1 = self.Lambda1.get_neigh_i(i)
             order_edges = np.arange(0,len(out_indices)) #shuffle order in which outoing messages are updated for each node.
-            np.random.shuffle(order_edges)
+            #np.random.shuffle(order_edges)
             for j in order_edges: 
                 idx = out_indices[j]
                 inc_msgs_j = np.delete(inc_msgs, j, axis=0)
@@ -57,7 +57,7 @@ class FactorGraph:
                 gamma0_ki_j = np.reshape(np.prod(np.sum(inc_lambda0_j*inc_msgs_j,axis=1),axis=0),(1,T+2))
                 gamma1_ki_j = np.reshape(np.prod(np.sum(inc_lambda1_j*inc_msgs_j,axis=1),axis=0),(1,T+2))
                 self.messages.values[idx] = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(inc_lambda1[j]*gamma1_ki_j - inc_lambda0[j]*gamma0_ki_j)))
-                self.messages.values[idx][0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs_j,axis=1),axis=0)[0]
+                self.messages.values[idx][0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_lambda1_j[:,:,0],axis=1),axis=0)
                 self.messages.values[idx][T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*inc_lambda1[j][:,T+1]*gamma1_ki_j[0][T+1])
                 norm = self.messages.values[idx].sum() #normalize the messages
                 self.messages.values[idx] = self.messages.values[idx]/norm
@@ -123,16 +123,17 @@ class FactorGraph:
             dummy_array = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(gamma1_ki - gamma0_ki)))
             dummy_array[0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs,axis=1),axis=0)[0]
             dummy_array[T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*gamma1_ki[0][T+1])
-            log_zi = log_zi + dummy_array.sum() #normalize the messages
+            log_zi = log_zi + dummy_array.sum() 
 
         log_zij = 0.
         #we have one marginal (Tx1 vector) for each node.
         for n in range(self.size): #loop through all nodes
             inc_indices, out_indices = self.messages.get_all_indices(n)
-            inc_msg = self.messages.values[inc_indices[0]] #b_i(t_i) is the same regardless of which non directed edge (ij), j \in\partial i we pick, so long as we sum over j. 
-            out_msg = self.messages.values[out_indices[0]]
-            marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
-            log_zij = log_zij + 0.5*np.log(marg.sum())
+            for j in np.arange(0,len(out_indices)):
+                inc_msg = self.messages.values[inc_indices[j]] #b_i(t_i) is the same regardless of which non directed edge (ij), j \in\partial i we pick, so long as we sum over j. 
+                out_msg = self.messages.values[out_indices[j]]
+                marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
+                log_zij = log_zij + 0.5*np.log(marg.sum())
         return log_zi - log_zij
 
     def reset_obs(self, obs):
