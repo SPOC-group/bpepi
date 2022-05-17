@@ -57,7 +57,7 @@ class FactorGraph:
                 gamma0_ki_j = np.reshape(np.prod(np.sum(inc_lambda0_j*inc_msgs_j,axis=1),axis=0),(1,T+2))
                 gamma1_ki_j = np.reshape(np.prod(np.sum(inc_lambda1_j*inc_msgs_j,axis=1),axis=0),(1,T+2))
                 self.messages.values[idx] = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(inc_lambda1[j]*gamma1_ki_j - inc_lambda0[j]*gamma0_ki_j)))
-                self.messages.values[idx][0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_lambda1_j[:,:,0],axis=1),axis=0)
+                self.messages.values[idx][0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs_j[:,:,0],axis=1),axis=0)
                 self.messages.values[idx][T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*inc_lambda1[j][:,T+1]*gamma1_ki_j[0][T+1])
                 norm = self.messages.values[idx].sum() #normalize the messages
                 self.messages.values[idx] = self.messages.values[idx]/norm
@@ -121,9 +121,9 @@ class FactorGraph:
             gamma0_ki = np.reshape(np.prod(np.sum(inc_lambda0*inc_msgs,axis=1),axis=0),(1,T+2))
             gamma1_ki = np.reshape(np.prod(np.sum(inc_lambda1*inc_msgs,axis=1),axis=0),(1,T+2))
             dummy_array = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(gamma1_ki - gamma0_ki)))
-            dummy_array[0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs,axis=1),axis=0)[0]
+            dummy_array[0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs[:,:,0],axis=1),axis=0)
             dummy_array[T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*gamma1_ki[0][T+1])
-            log_zi = log_zi + dummy_array.sum() 
+            log_zi = log_zi + np.log(dummy_array.sum() )
 
         log_zij = 0.
         #we have one marginal (Tx1 vector) for each node.
