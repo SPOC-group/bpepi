@@ -1,2 +1,0 @@
-Parameters: graph=full_rary_tree, N=5000, r=3, T=16, lambda=0.8, delta=1/100, rho=0.05
-Sib: tol=1e-6
