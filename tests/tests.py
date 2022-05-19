@@ -28,6 +28,6 @@ def test():
             passed.append(1)
         else:
             passed.append(0)
-    return print(sum(passed), 'tests passed out of', len(passed))
+    print(sum(passed), 'tests passed out of', len(passed))
 
 test()
