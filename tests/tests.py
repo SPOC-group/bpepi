@@ -58,28 +58,36 @@ def test(type='t'):
             sib_marginals_rnd = np.load(path+'/sib_marginals_rnd.npz')['arr_0']
             sib_marginals_inf = np.load(path+'/sib_marginals_inf.npz')['arr_0']
             code_f_rnd = FactorGraph(params[0], params[1], contacts, [], params[2])
-            code_f_rnd.update()
+            code_f_rnd.update(tol=1e-9)
             code_f_rnd.reset_obs(list_obs)
             code_f_rnd.update(tol=1e-9)
             code_marginals_rnd = code_f_rnd.marginals()
-            np.savez(path+'bpepi_marginals_rnd.npz', code_marginals_rnd)
+            np.savez(save_path+'/bpepi_marginals_rnd.npz', code_marginals_rnd)
             code_f_inf = FactorGraph(params[0], params[1], contacts, list_obs_all, params[2])
-            code_f_inf.update()
+            code_f_inf.update(tol=1e-9)
             code_f_inf.reset_obs(list_obs)
             code_f_inf.update(tol=1e-9)
             code_marginals_inf = code_f_inf.marginals()
-            np.savez(path+'bpepi_marginals_inf', code_marginals_inf)
-            if np.allclose(np.sum(code_marginals_rnd - sib_marginals_rnd, axis=1), np.zeros(params[0]), atol=1e-10) and np.allclose(np.sum(code_marginals_inf - sib_marginals_inf, axis=1), np.zeros(params[0]), atol=1e-10):
-                passed.append(1)
-                print('bpepi inf and rnd = sib rnd')
-            else:
-                passed.append(0)
-                print('bpepi inf and rnd != sib rnd')
-            if np.allclose(np.sum(sib_marginals_rnd - sib_marginals_inf, axis=1), np.zeros(params[0]), atol=1e-10):
-                print('sib inf = sib rnd')
-            else:
-                print('sib inf != sib rnd')
-        print(sum(passed), 'tests passed out of', len(passed))
+            np.savez(save_path+'/bpepi_marginals_inf.npz', code_marginals_inf)
+            tolerances = [1e-12, 1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1]
+            distance_1 = '> 1'
+            for tol in tolerances:
+                if np.allclose(np.sum(np.abs(code_marginals_rnd - sib_marginals_rnd), axis=1), np.zeros(params[0]), atol=tol):
+                    distance_1 = '<'+str(tol)
+                    break
+            distance_2 = '> 1'
+            for tol in tolerances:
+                if np.allclose(np.sum(np.abs(code_marginals_inf - sib_marginals_rnd), axis=1), np.zeros(params[0]), atol=tol)
+                    distance_2 = '<'+str(tol)
+                    break
+            distance_3 = '> 1'
+            for tol in tolerances:
+                if np.allclose(np.sum(np.abs(sib_marginals_rnd - sib_marginals_inf), axis=1), np.zeros(params[0]), atol=tol):
+                    distance_3 = '<'+str(tol)
+                    break
+        print('bpepi rnd marginals and sib rnd marginals distance', distance_1)
+        print('bpepi inf marginals and sib rnd marginals distance', distance_2)
+        print('sib inf marginals and sib rnd marginals distance', distance_3')
 
 
 test(type='i')
