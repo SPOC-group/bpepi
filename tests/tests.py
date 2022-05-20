@@ -37,6 +37,7 @@ def test(type='t'):
                 passed.append(0)
         print(sum(passed), 'tests passed out of', len(passed))
     if type=='i':
+        save_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "."))
         num_dir=0
         count_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'test_data/initialization'))
         for root, dirs, files in os.walk(count_path):
@@ -61,16 +62,24 @@ def test(type='t'):
             code_f_rnd.reset_obs(list_obs)
             code_f_rnd.update(tol=1e-9)
             code_marginals_rnd = code_f_rnd.marginals()
+            np.savez(path+'bpepi_marginals_rnd.npz', code_marginals_rnd)
             code_f_inf = FactorGraph(params[0], params[1], contacts, list_obs_all, params[2])
             code_f_inf.update()
             code_f_inf.reset_obs(list_obs)
             code_f_inf.update(tol=1e-9)
             code_marginals_inf = code_f_inf.marginals()
+            np.savez(path+'bpepi_marginals_inf', code_marginals_inf)
             if np.allclose(np.sum(code_marginals_rnd - sib_marginals_rnd, axis=1), np.zeros(params[0]), atol=1e-10) and np.allclose(np.sum(code_marginals_inf - sib_marginals_inf, axis=1), np.zeros(params[0]), atol=1e-10):
                 passed.append(1)
+                print('bpepi inf and rnd = sib rnd')
             else:
                 passed.append(0)
+                print('bpepi inf and rnd != sib rnd')
+            if np.allclose(np.sum(sib_marginals_rnd - sib_marginals_inf, axis=1), np.zeros(params[0]), atol=1e-10):
+                print('sib inf = sib rnd')
+            else:
+                print('sib inf != sib rnd')
         print(sum(passed), 'tests passed out of', len(passed))
 
 
-test(type='t')
+test(type='i')
