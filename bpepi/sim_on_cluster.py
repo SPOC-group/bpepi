@@ -42,9 +42,8 @@ def generate_one_conf(g, lamb=0.05, T=10, percentage_infected=0.01):
             status_nodes[t:T, node_i] = iterations[t]["status"][node_i]
     return np.array(status_nodes)
     
-def generate_contacts(G, t_limit, lambda_, p_edge=1, seed=1):
+def generate_contacts(G, t_limit, lambda_, p_edge=1):
     contacts = []
-    random.seed(seed)
     for t in range(t_limit):
         for e in G.edges():
             if random.random() <= p_edge:
@@ -223,6 +222,8 @@ def fill_data_obs_it(data_obs_it, f, status_nodes, T, it, e, init, M, S, tol, n_
     data_obs_it["logL"].append( f.loglikelihood() )
 
 def sim_and_fill(f, data_obs, data_obs_it, list_obs, n_iter, tol, print_it, status_nodes, T, init, M, S, iter_space, sim, flag_sources, flag_obs):
+    tol2=1e-2
+    it_max=10000
     for it in range(n_iter):
         e0 = f.iterate()
         if e0 < tol:
@@ -239,6 +240,14 @@ def sim_and_fill(f, data_obs, data_obs_it, list_obs, n_iter, tol, print_it, stat
             n_it_print = n_it_print + 1
             fill_data_obs_it(data_obs_it, f, status_nodes, T, it+1, e, init, M, S, tol, n_iter, n_it_print, sim, flag_sources, flag_obs )
         if e < tol:
+            break
+    while ( (e > tol) and (e < tol2)):
+        it = it + 1
+        e = f.iterate()
+        if (print_it and ((it+1)%iter_space ==0) ):
+            n_it_print = n_it_print + 1
+            fill_data_obs_it(data_obs_it, f, status_nodes, T, it+1, e, init, M, S, tol, n_iter, n_it_print, sim, flag_sources, flag_obs)
+        if (it == it_max):
             break
     fill_data_obs( data_obs,
         f,
@@ -764,33 +773,34 @@ if __name__ == "__main__":
         data_frame_it["sim"] = data_frame_it["sim"].astype(int)
         data_frame_it["converged"] = data_frame_it["converged"].astype(str)
 
+    timestr = time.strftime("%Y%m%d-%H%M%S")
     if (flag_obs):
         if (flag_sources):
             data_frame[o] = data_frame[o].astype(float)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(float)
             data_frame[s] = data_frame[s].astype(float)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(float)
-            file_name = "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}_".format(graph, N, d, S,lam,M) + timestr + ".xz"
         else:
             data_frame[o] = data_frame[o].astype(float)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(float)
             data_frame[s] = data_frame[s].astype(int)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(int)
-            file_name = "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}_".format(graph, N, d, S,lam,M) + timestr + ".xz"
     else:
         if (flag_sources):
             data_frame[o] = data_frame[o].astype(int)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(int)
             data_frame[s] = data_frame[s].astype(float)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(float)
-            file_name = "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}_".format(graph, N, d, S,lam,M) + timestr + ".xz"
 
         else:
             data_frame[o] = data_frame[o].astype(int)
             if (print_it): data_frame_it[o] = data_frame_it[o].astype(int)
             data_frame[s] = data_frame[s].astype(int)
             if (print_it): data_frame_it[s] = data_frame_it[s].astype(int)
-            file_name = "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}.xz".format(graph, N, d, S,lam,M)
+            file_name = "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}_".format(graph, N, d, S,lam,M)  + timestr + ".xz"
 
     if (print_it) : saveObj = (data_frame, data_frame_it, np.array(data_obs["marginal0"]))
     else : saveObj = (data_frame,np.array(data_obs["marginal0"]))
