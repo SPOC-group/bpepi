@@ -10,7 +10,7 @@ def test(type='t'):
     """Function to check agreement with SIB
 
     Args:
-    type (str): Which test to perform. Current options are {'t', 'i'}. 't' checks if marginals agree on tree graphs. 'i' checks if marginals from informed and random initializations in bpepi agree in regimes where they don not in SIB.
+    type (str): Which test to perform. Current options are {'t', 'i'}. 't' checks if marginals agree on tree graphs. 'i' checks if marginals from informed and random initializations in bpepi agree in regimes where they do not in SIB.
     """ 
     passed = []
     if type=='t':
@@ -66,7 +66,7 @@ def test(type='t'):
             code_f_inf.reset_obs(list_obs)
             code_f_inf.update(tol=1e-9)
             code_marginals_inf = code_f_inf.marginals()
-            if np.allclose(np.sum(code_f_rnd - sib_marginals_rnd, axis=1), np.zeros(params[0]), atol=1e-10) and np.allclose(np.sum(code_f_inf - sib_marginals_rnd, axis=1), np.zeros(params[0]), atol=1e-10):
+            if np.allclose(np.sum(code_marginals_rnd - sib_marginals_rnd, axis=1), np.zeros(params[0]), atol=1e-10) and np.allclose(np.sum(code_marginals_inf - sib_marginals_inf, axis=1), np.zeros(params[0]), atol=1e-10):
                 passed.append(1)
             else:
                 passed.append(0)
