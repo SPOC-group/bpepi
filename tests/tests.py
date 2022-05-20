@@ -73,4 +73,4 @@ def test(type='t'):
         print(sum(passed), 'tests passed out of', len(passed))
 
 
-test(type='i')
+test(type='t')

@@ -39,16 +39,13 @@ class FactorGraph:
         """
         T=self.time
         old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
-        #old_values = self.messages.values
         order_nodes = np.arange(0,self.size) 
-        #np.random.shuffle(order_nodes) #shuffle order in which nodes are updated.
         for i in order_nodes:
-            inc_indices, out_indices = old_msgs.get_all_indices(i) #inc_indices, out_indices = self.messages.get_all_indices(i) 
-            inc_msgs = old_msgs.get_neigh_i(i) #inc_msgs = self.messages.get_neigh_i(i)
+            inc_indices, out_indices = old_msgs.get_all_indices(i)  
+            inc_msgs = old_msgs.get_neigh_i(i) 
             inc_lambda0 = self.Lambda0.get_neigh_i(i)
             inc_lambda1 = self.Lambda1.get_neigh_i(i)
-            order_edges = np.arange(0,len(out_indices)) #shuffle order in which outoing messages are updated for each node.
-            #np.random.shuffle(order_edges)
+            order_edges = np.arange(0,len(out_indices))
             for j in order_edges: 
                 idx = out_indices[j]
                 inc_msgs_j = np.delete(inc_msgs, j, axis=0)
