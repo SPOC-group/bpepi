@@ -1,5 +1,5 @@
 import numpy as np
-from st import SparseTensor, compute_Lambdas
+from st import SparseTensor, compute_Lambdas, compute_Lambdas_vec, compute_Lambdas_fullvec
 
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
