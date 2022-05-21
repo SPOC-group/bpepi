@@ -77,7 +77,7 @@ def test(type='t'):
                     break
             distance_2 = '> 1'
             for tol in tolerances:
-                if np.allclose(np.sum(np.abs(code_marginals_inf - sib_marginals_rnd), axis=1), np.zeros(params[0]), atol=tol)
+                if np.allclose(np.sum(np.abs(code_marginals_inf - sib_marginals_rnd), axis=1), np.zeros(params[0]), atol=tol):
                     distance_2 = '<'+str(tol)
                     break
             distance_3 = '> 1'
@@ -87,7 +87,7 @@ def test(type='t'):
                     break
         print('bpepi rnd marginals and sib rnd marginals distance', distance_1)
         print('bpepi inf marginals and sib rnd marginals distance', distance_2)
-        print('sib inf marginals and sib rnd marginals distance', distance_3')
+        print('sib inf marginals and sib rnd marginals distance', distance_3)
 
 
 test(type='i')
