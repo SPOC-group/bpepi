@@ -29,6 +29,7 @@ import ndlib.models.epidemics as ep
 import ndlib.models.ModelConfig as mc
 
 def generate_one_conf(g, lamb=0.05, T=10, percentage_infected=0.01):
+    N = g.number_of_nodes()
     model = ep.SIModel(g)
     cfg = mc.Configuration()
     cfg.add_model_parameter('beta', lamb) # infection rate
