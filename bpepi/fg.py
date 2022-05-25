@@ -1,5 +1,5 @@
 import numpy as np
-from st import SparseTensor, compute_Lambdas, compute_Lambdas_vec, compute_Lambdas_fullvec
+from st import SparseTensor, compute_Lambdas
 
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
@@ -22,9 +22,7 @@ class FactorGraph:
         self.Lambda0 = SparseTensor(Tensor_to_copy=self.messages) #messages only depend on lambda through Lambda matrices.
         self.Lambda1 = SparseTensor(Tensor_to_copy=self.messages)
 
-        #compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
-        #compute_Lambdas_vec(self.Lambda0, self.Lambda1, contacts)
-        compute_Lambdas_fullvec(self.Lambda0, self.Lambda1, contacts)
+        compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
 
         self.observations = np.ones((N,T+2))  #creating the mask for observations
         for o in obs:

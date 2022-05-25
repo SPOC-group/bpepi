@@ -69,9 +69,7 @@ def test(type='t'):
         count_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'test_data/initialization'))
         for root, dirs, files in os.walk(count_path):
             for name in dirs:
-                print(name)
                 num_dir += 1
-        print(num_dir)
         for i in range(0, num_dir):
             path = os.path.join(count_path, str(i))
             with open(path+'/contacts', 'rb') as f:
