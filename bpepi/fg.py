@@ -89,16 +89,16 @@ class FactorGraph:
         T = self.time
         N = self.size
         old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
-        for i in np.range(N):
-            indices = [np.randint(0,N) for _ in range(c-1)]
-            inc_msgs = [old_msgs[idx] for idx in indices]
-            inc_lambda0 = [self.Lambda0[idx] for idx in indices]
-            inc_lambda1 = [self.Lambda1[idx] for idx in indices]
+        for i in range(N):
+            indices = [np.random.randint(0,N) for _ in range(c-1)]
+            inc_msgs = np.array([old_msgs.values[idx] for idx in indices])
+            inc_lambda0 = np.array([self.Lambda0.values[idx] for idx in indices])
+            inc_lambda1 = np.array([self.Lambda1.values[idx] for idx in indices])
             gamma0_ki = np.reshape(np.prod(np.sum(inc_lambda0*inc_msgs,axis=1),axis=0),(1,T+2))
             gamma1_ki = np.reshape(np.prod(np.sum(inc_lambda1*inc_msgs,axis=1),axis=0),(1,T+2))
-            self.messages.values[i] = np.transpose(((1-self.delta)*np.reshape(self.observations[i],(1,T+2))*(inc_lambda1[0]*gamma1_ki - inc_lambda0[0]*gamma0_ki)))
-            self.messages.values[i][0] = self.delta*self.observations[i][0]*np.prod(np.sum(inc_msgs[:,:,0],axis=1),axis=0)
-            self.messages.values[i][T+1] = np.transpose((1-self.delta)*self.observations[i][T+1]*inc_lambda1[0][:,T+1]*gamma1_ki[0][T+1])
+            self.messages.values[i] = np.transpose(((1-self.delta)*np.reshape(np.ones(T+2),(1,T+2))*(inc_lambda1[0]*gamma1_ki - inc_lambda0[0]*gamma0_ki)))
+            self.messages.values[i][0] = self.delta*np.prod(np.sum(inc_msgs[:,:,0],axis=1),axis=0)
+            self.messages.values[i][T+1] = np.transpose((1-self.delta)*inc_lambda1[0][:,T+1]*gamma1_ki[0][T+1])
             norm = self.messages.values[i].sum() #normalize the messages
             self.messages.values[i] = self.messages.values[i]/norm
 
@@ -173,8 +173,8 @@ class FactorGraph:
                 inc_msg = self.messages.values[inc_indices[j]] #b_i(t_i) is the same regardless of which non directed edge (ij), j \in\partial i we pick, so long as we sum over j. 
                 out_msg = self.messages.values[out_indices[j]]
                 marg = np.sum(inc_msg*np.transpose(out_msg), axis=0) #transpose outgoing message so index to sum over after broadcasting is 0.
-                log_zij = log_zij + 0.5*np.log(marg.sum())
-        return log_zi - log_zij
+                log_zij = log_zij + np.log(marg.sum())
+        return log_zi - 0.5 * log_zij
 
     def reset_obs(self, obs):
         """Resets the observations, starting from the obs list
