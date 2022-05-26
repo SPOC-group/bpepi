@@ -117,22 +117,7 @@ class SparseTensor:
 
         return incoming_indices, outgoing_indices
     
-    
-def compute_Lambdas(Lambda0,Lambda1,contacts):
-    """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
-
-    Args:
-        Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
-        Lambda1 (SparseTensor): SparseTensor useful to update the BP messages
-        contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
-    """
-    T = Lambda0.T
-    for c in contacts:
-        idx = Lambda0.get_idx_ij(c[0],c[1])
-        Lambda0.values[idx] = Lambda0.values[idx] * (1-c[3] * np.array( [np.array([1*(ti-1>=c[2])*(c[2]>tj-1) for ti in range(T+2)]) for tj in range(T+2)]))
-        Lambda1.values[idx] = Lambda1.values[idx] * (1-c[3] * np.array( [np.array([1*(ti-2>=c[2])*(c[2]>tj-1) for ti in range(T+2)]) for tj in range(T+2)]))
-
-def compute_Lambdas_vec(Lambda0,Lambda1,contacts):
+def compute_Lambdas(Lambda0,Lambda1,contacts): #change to loop over full contacts
     """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
     Args:
         Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
@@ -140,29 +125,17 @@ def compute_Lambdas_vec(Lambda0,Lambda1,contacts):
         contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
     """
     T = Lambda0.T
-    for c in contacts:
-        idx = Lambda0.get_idx_ij(c[0],c[1])
-        Lambda0.values[idx] = Lambda0.values[idx] * np.full((T+2,T+2),(1-c[3]))**np.heaviside(np.tile(np.reshape(np.arange(0, T+2),(1,T+2)),(T+2,1)) - np.tile(np.reshape(np.arange(0, T+2),(T+2,1)),(1,T+2))-c[2],0)
-        Lambda1.values[idx] = Lambda1.values[idx] * np.full((T+2,T+2),(1-c[3]))**np.heaviside(np.tile(np.reshape(np.arange(0, T+2),(1,T+2)),(T+2,1)) - np.tile(np.reshape(np.arange(0, T+2),(T+2,1)),(1,T+2))-c[2]-1,0)
-
-def compute_Lambdas_fullvec(Lambda0,Lambda1,contacts):
-    """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
-    Args:
-        Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
-        Lambda1 (SparseTensor): SparseTensor useful to update the BP messages
-        contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
-    """
-    T = Lambda0.T
-    c2 = np.array(contacts)[:,2]
-    c3 = np.array(contacts)[:,3]
-    idx = np.zeros(int(len(contacts)/T),dtype='int')
-    i=0
-    for c in contacts[0:int(len(contacts)/T)]:
-        idx[i] = Lambda0.get_idx_ij(c[0],c[1])
-        i += 1
-    x1 = np.tile(np.reshape(np.arange(0, T+2),(1,1,T+2)),(c3.shape[0],T+2,1))
-    x2 = np.tile(np.reshape(np.arange(0, T+2),(1,T+2,1)),(c3.shape[0],1,T+2))
-    matrix_l0 = np.reshape((np.reshape((1-c3),(c3.shape[0],1,1))*np.ones((1,T+2,T+2)))**np.heaviside(x1-x2-np.reshape(c2,(c2.shape[0],1,1)),0),(T,int(len(contacts)/T),T+2,T+2))
-    matrix_l1 = np.reshape((np.reshape((1-c3),(c3.shape[0],1,1))*np.ones((1,T+2,T+2)))**np.heaviside(x1-x2-np.reshape(c2,(c2.shape[0],1,1))-1,0),(T,int(len(contacts)/T),T+2,T+2))
-    Lambda0.values[idx] = np.prod(matrix_l0,axis=0)
-    Lambda1.values[idx] = np.prod(matrix_l1,axis=0)
+    con = np.array(contacts)
+    for time in range(T):
+        contacts_T = con[np.where(con[:,2]==time)[0]]
+        c2 = contacts_T[:,2]
+        c3 = contacts_T[:,3]
+        idx = np.zeros(len(contacts_T),dtype='int')
+        i=0
+        for c in contacts_T:
+            idx[i] = Lambda0.get_idx_ij(int(c[0]),int(c[1]))
+            i += 1
+        x1 = np.tile(np.reshape(np.arange(0, T+2),(1,1,T+2)),(len(idx),T+2,1))
+        x2 = np.tile(np.reshape(np.arange(0, T+2),(1,T+2,1)),(len(idx),1,T+2))
+        Lambda0.values[idx] = Lambda0.values[idx]*np.reshape((np.reshape((1-c3),(c3.shape[0],1,1))*np.ones((1,T+2,T+2)))**np.heaviside(x1-x2-np.reshape(c2,(c2.shape[0],1,1)),0),(len(idx),T+2,T+2))
+        Lambda1.values[idx] = Lambda1.values[idx]*np.reshape((np.reshape((1-c3),(c3.shape[0],1,1))*np.ones((1,T+2,T+2)))**np.heaviside(x1-x2-np.reshape(c2,(c2.shape[0],1,1))-1,0),(len(idx),T+2,T+2))    
