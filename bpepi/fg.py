@@ -52,8 +52,8 @@ class FactorGraph:
         self.inc_j = np.array(self.inc_j).flatten()
         self.obs_i = np.array(flat_adj)
 
-        self.Lambda0.values = np.append(self.Lambda0.values,np.full((1,T+2,T+2),1/(T+2)**2),axis=0) #add fictitious lamda matrices
-        self.Lambda1.values = np.append(self.Lambda1.values,np.full((1,T+2,T+2),1/(T+2)**2),axis=0)
+        self.Lambda0.values = np.append(self.Lambda0.values,np.full((1,T+2,T+2),1/np.sqrt(T+2)),axis=0) #add fictitious lamda matrices
+        self.Lambda1.values = np.append(self.Lambda1.values,np.full((1,T+2,T+2),1/np.sqrt(T+2)),axis=0)
 
     def iterate(self): #only works all types of graphs, not just RRG?
         """Single iteration of the BP algorithm
@@ -62,10 +62,11 @@ class FactorGraph:
         """
         T=self.time
         old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
-        old_msgs.values = np.append(old_msgs.values,np.full((1,T+2,T+2),1/(T+2)**2),axis=0) #add fictitious message which contributes nothing in update
+        old_msgs.values = np.append(old_msgs.values,np.full((1,T+2,T+2),1/np.sqrt(T+2)),axis=0) #add fictitious message which contributes nothing in update
         gamma0 = np.reshape(np.prod(np.sum(self.Lambda0.values[self.inc_msgs]*old_msgs.values[self.inc_msgs],axis=2),axis=1),(len(self.inc_msgs),1,T+2))
         gamma1 = np.reshape(np.prod(np.sum(self.Lambda1.values[self.inc_msgs]*old_msgs.values[self.inc_msgs],axis=2),axis=1),(len(self.inc_msgs),1,T+2))
         one = np.transpose((1-self.delta)*np.reshape(self.observations[self.obs_i],(len(self.out_msgs),1,T+2))*(self.Lambda1.values[self.inc_j]*gamma1 - self.Lambda0.values[self.inc_j]*gamma0),(0,2,1))[:,1:T+1,:]
+        old_msgs.values[len(self.out_msgs)] = old_msgs.values[len(self.out_msgs)]*1/np.sqrt(T+2)
         two = np.reshape(np.tile(np.reshape(self.delta*self.observations[self.obs_i][:,0]*np.prod(np.sum(old_msgs.values[self.inc_msgs][:,:,:,0],axis=2),axis=1),(len(self.out_msgs),1)),T+2),(len(self.out_msgs),1,T+2))
         three = np.reshape((1-self.delta)*np.reshape(self.observations[self.obs_i][:,T+1],(len(self.out_msgs),1))*self.Lambda1.values[self.inc_j][:,:,T+1]*np.reshape(gamma1[:,0,T+1],(len(self.out_msgs),1)),(len(self.out_msgs),1,T+2))
         self.messages.values[self.out_msgs] = np.concatenate((np.zeros((len(self.out_msgs),1,T+2)),one,np.zeros((len(self.out_msgs),1,T+2))), axis=1) + np.concatenate((two,np.zeros((len(self.out_msgs),T+1,T+2))),axis=1) + np.concatenate((np.zeros((len(self.out_msgs),T+1,T+2)),three),axis=1)

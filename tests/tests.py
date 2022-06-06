@@ -56,9 +56,10 @@ def test(type='t'):
                 params = pickle.load(f)
             sib_marginals = np.load(path+'/sib_marginals.npz')['arr_0']
             code_fg = FactorGraph(params[0], params[1], contacts, list_obs, params[2])
-            code_fg.update()
+            code_fg.update(maxit=200, tol=1e-10)
             code_marginals = code_fg.marginals()
-            if np.allclose(np.sum(code_marginals - sib_marginals, axis=1), np.zeros(params[0]), atol=1e-14) == True:
+            print(np.sum(code_marginals[:,0])/params[0])
+            if np.allclose(np.sum(np.abs(code_marginals - sib_marginals), axis=1), np.zeros(params[0]), atol=1e-6) == True:
                 passed.append(1)
             else:
                 passed.append(0)
