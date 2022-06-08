@@ -41,7 +41,7 @@ class SparseTensor:
         )  # We get the contact network directly from the list of contacts
         edge_list = np.concatenate((edge_list, np.flip(edge_list, 1)), axis=0)
         edge_list = np.unique(edge_list, axis=0)
-        num_direct_edges = len(edge_list)
+        self.num_direct_edges = len(edge_list)
 
         for e in edge_list:
             self.adj_list[e[0]].append(e[1])
