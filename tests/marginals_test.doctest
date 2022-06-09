@@ -11,7 +11,7 @@
 >>> lam = 1
 >>> delta = 0.01
 >>> rho = 0.1
->>> path = "test_data/tree/0"
+>>> path = "./test_data/tree/0"
 >>> contacts = pickle.load(open(path+'/contacts', 'rb'))
 >>> list_obs = pickle.load(open(path+'/list_obs', 'rb'))
 >>> params = pickle.load(open(path+'/params', 'rb'))
@@ -24,7 +24,7 @@
 0.0095
 >>> np.allclose(np.sum(np.abs(code_marginals - sib_marginals), axis=1), np.zeros(params[0]), atol=1e-6)
 True
->>> path = "test_data/tree/1"
+>>> path = "./test_data/tree/1"
 >>> contacts = pickle.load(open(path+'/contacts', 'rb'))
 >>> list_obs = pickle.load(open(path+'/list_obs', 'rb'))
 >>> params = pickle.load(open(path+'/params', 'rb'))
