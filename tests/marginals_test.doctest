@@ -1,0 +1,39 @@
+>>> import sys
+>>> import os
+>>> import pickle
+>>> import numpy as np
+>>> import networkx as nx
+>>> from context import bpepi
+>>> from bpepi import fg
+>>> N = 5000
+>>> d = 3
+>>> T = 10
+>>> lam = 1
+>>> delta = 0.01
+>>> rho = 0.1
+>>> path = "test_data/tree/0"
+>>> contacts = pickle.load(open(path+'/contacts', 'rb'))
+>>> list_obs = pickle.load(open(path+'/list_obs', 'rb'))
+>>> params = pickle.load(open(path+'/params', 'rb'))
+>>> sib_marginals = np.load(path+'/sib_marginals.npz')['arr_0']
+>>> code_fg = fg.FactorGraph(params[0], params[1], contacts, list_obs, params[2])
+>>> code_fg.update(maxit=200, tol=1e-10)
+(16, 0.0)
+>>> code_marginals = code_fg.marginals()
+>>> print(f"{np.sum(code_marginals[:,0])/params[0]:.4f}")
+0.0095
+>>> np.allclose(np.sum(np.abs(code_marginals - sib_marginals), axis=1), np.zeros(params[0]), atol=1e-6)
+True
+>>> path = "test_data/tree/1"
+>>> contacts = pickle.load(open(path+'/contacts', 'rb'))
+>>> list_obs = pickle.load(open(path+'/list_obs', 'rb'))
+>>> params = pickle.load(open(path+'/params', 'rb'))
+>>> sib_marginals = np.load(path+'/sib_marginals.npz')['arr_0']
+>>> code_fg = fg.FactorGraph(params[0], params[1], contacts, list_obs, params[2])
+>>> code_fg.update(maxit=200, tol=1e-10)
+(16, 0.0)
+>>> code_marginals = code_fg.marginals()
+>>> print(f"{np.sum(code_marginals[:,0])/params[0]:.4f}")
+0.0095
+>>> np.allclose(np.sum(np.abs(code_marginals - sib_marginals), axis=1), np.zeros(params[0]), atol=1e-6)
+True
