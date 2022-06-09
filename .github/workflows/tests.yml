@@ -38,4 +38,4 @@ jobs:
       - name: Install package
         run: python setup.py install
       - name: Run tests
-        run: python tests/doctests.py
+        run: python tests/doctests.py -v
