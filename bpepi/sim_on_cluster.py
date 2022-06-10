@@ -1312,7 +1312,7 @@ if __name__ == "__main__":
         data_frame_it["sim"] = data_frame_it["sim"].astype(int)
         data_frame_it["converged"] = data_frame_it["converged"].astype(str)
 
-    timestr = time.strftime("%Y%m%d-%H%M%S")
+    timestr = time.strftime("%Y%m%d-%H%M%S.%f")# + "_" + str(random.randint(1,1000))
     if flag_obs:
         if flag_sources:
             data_frame[o] = data_frame[o].astype(float)
