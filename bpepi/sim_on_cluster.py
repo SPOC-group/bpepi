@@ -845,9 +845,9 @@ if __name__ == "__main__":
                     list_obs = generate_obs(status_nodes, frac_obs=M)
                     list_obs_all = generate_obs(status_nodes, frac_obs=1)
 
-                f_rnd = FactorGraph(N=N, T=T, contacts=contacts, obs=[], delta=pseed)
+                f_rnd = FactorGraph(N=N, T=T, contacts=contacts, obs=[], delta=S)
                 f_informed = FactorGraph(
-                    N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed
+                    N=N, T=T, contacts=contacts, obs=list_obs_all, delta=S
                 )
 
                 sim_and_fill(
