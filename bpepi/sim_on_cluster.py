@@ -921,7 +921,7 @@ if __name__ == "__main__":
                     data_obs["lam"],
                     data_obs["n_sim"],
                     data_obs["n_iter"],
-                    data_obs["pseed"],
+                    #data_obs["pseed"],
                     data_obs["delta"][i],
                     data_obs["rho"][i],
                     data_obs["init"][i],
@@ -957,7 +957,7 @@ if __name__ == "__main__":
                         data_obs_it["lam"],
                         data_obs_it["n_sim"],
                         data_obs_it["n_iter"],
-                        data_obs_it["pseed"],
+                        #data_obs_it["pseed"],
                         data_obs_it["iter"][i],
                         data_obs_it["delta"][i],
                         data_obs_it["rho"][i],
@@ -987,7 +987,7 @@ if __name__ == "__main__":
                     data_obs["lam"],
                     data_obs["n_sim"],
                     data_obs["n_iter"],
-                    data_obs["pseed"],
+                    #data_obs["pseed"],
                     data_obs["# sources"][i],
                     data_obs["rho"][i],
                     data_obs["init"][i],
@@ -1023,7 +1023,7 @@ if __name__ == "__main__":
                         data_obs_it["lam"],
                         data_obs_it["n_sim"],
                         data_obs_it["n_iter"],
-                        data_obs_it["pseed"],
+                        #data_obs_it["pseed"],
                         data_obs_it["iter"][i],
                         data_obs_it["# sources"][i],
                         data_obs_it["rho"][i],
@@ -1054,7 +1054,7 @@ if __name__ == "__main__":
                     data_obs["lam"],
                     data_obs["n_sim"],
                     data_obs["n_iter"],
-                    data_obs["pseed"],
+                    #data_obs["pseed"],
                     data_obs["delta"][i],
                     data_obs["# obs"][i],
                     data_obs["init"][i],
@@ -1090,7 +1090,7 @@ if __name__ == "__main__":
                         data_obs_it["lam"],
                         data_obs_it["n_sim"],
                         data_obs_it["n_iter"],
-                        data_obs_it["pseed"],
+                        #data_obs_it["pseed"],
                         data_obs_it["iter"][i],
                         data_obs_it["delta"][i],
                         data_obs_it["# obs"][i],
@@ -1120,7 +1120,7 @@ if __name__ == "__main__":
                     data_obs["lam"],
                     data_obs["n_sim"],
                     data_obs["n_iter"],
-                    data_obs["pseed"],
+                    #data_obs["pseed"],
                     data_obs["# sources"][i],
                     data_obs["# obs"][i],
                     data_obs["init"][i],
@@ -1156,7 +1156,7 @@ if __name__ == "__main__":
                         data_obs_it["lam"],
                         data_obs_it["n_sim"],
                         data_obs_it["n_iter"],
-                        data_obs_it["pseed"],
+                        #data_obs_it["pseed"],
                         data_obs_it["iter"][i],
                         data_obs_it["# sources"][i],
                         data_obs_it["# obs"][i],
@@ -1207,7 +1207,7 @@ if __name__ == "__main__":
             s_l,
             "n_sim",
             "n_iter",
-            "pseed",
+            #"pseed",
             s,
             o,
             "init",
@@ -1239,7 +1239,7 @@ if __name__ == "__main__":
     data_frame[s_l] = data_frame[s_l].astype(float)
     data_frame["n_sim"] = data_frame["n_sim"].astype(int)
     data_frame["n_iter"] = data_frame["n_iter"].astype(int)
-    data_frame["pseed"] = data_frame["pseed"].astype(float)
+    #data_frame["pseed"] = data_frame["pseed"].astype(float)
     data_frame["init"] = data_frame["init"].astype(str)
     data_frame[ov] = data_frame[ov].astype(float)
     data_frame[mov] = data_frame[mov].astype(float)
@@ -1272,7 +1272,7 @@ if __name__ == "__main__":
                 s_l,
                 "n_sim",
                 "n_iter",
-                "pseed",
+                #"pseed",
                 "iter",
                 s,
                 o,
@@ -1296,7 +1296,7 @@ if __name__ == "__main__":
         data_frame_it[s_l] = data_frame_it[s_l].astype(float)
         data_frame_it["n_sim"] = data_frame_it["n_sim"].astype(int)
         data_frame_it["n_iter"] = data_frame_it["n_iter"].astype(int)
-        data_frame_it["pseed"] = data_frame_it["pseed"].astype(float)
+        #data_frame_it["pseed"] = data_frame_it["pseed"].astype(float)
         data_frame_it["iter"] = data_frame_it["iter"].astype(int)
         data_frame_it["init"] = data_frame_it["init"].astype(str)
         data_frame_it[ov] = data_frame_it[ov].astype(float)
