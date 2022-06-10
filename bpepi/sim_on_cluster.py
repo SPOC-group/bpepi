@@ -141,6 +141,8 @@ def create_data_obs(flag_sources, flag_obs, n_sim, N, d, lam, n_iter, pseed):
     data_obs["mov0_rnd"] = []  # overlap with the ground truth at t=0, n_T x n_M x n_sim
     data_obs["se"] = []
     data_obs["mse"] = []
+    data_obs["se_rnd"] = []
+    data_obs["mse_rnd"] = []
     data_obs["nI"] = []
     data_obs["e"] = []
     data_obs["logL"] = []
@@ -178,8 +180,11 @@ def fill_data_obs(
     data_obs["mov0"].append(M_overlap(Ms0))
     data_obs["mov0_rnd"].append(M_overlap_rnd(Ms0))
     ti_inf = ti_inferred(Bs)
+    ti_rnd = ti_random(Bs)
     data_obs["se"].append(E_SE(ti_str, ti_inf))
     data_obs["mse"].append(MSE(Bs, ti_inf))
+    data_obs["se_rnd"].append(E_SE(ti_str, ti_rnd))
+    data_obs["mse_rnd"].append(MSE(Bs, ti_rnd))
     data_obs["nI"].append(it)
     data_obs["e"].append(e)
     data_obs["logL"].append(f.loglikelihood())
@@ -510,6 +515,22 @@ def ti_inferred(B):
         [np.array([(t - 1) * bt for t, bt in enumerate(b)]).sum() for b in B]
     )
     # return np.array([ np.array([ t*bt for t,bt in enumerate(b) if t != T ]).sum() for i,b in enumerate(B)])
+
+def ti_random(B):
+    """[summary]
+
+    Args:
+        M ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    T = len(B[0])-2
+    b_mean = B.mean(axis=0)
+    ti =  np.array(
+        [ t * b_mean[i]  for i,t  in enumerate(range(-1,T+1))]
+    ).sum()
+    return np.full(B.shape[0],ti)
 
 
 def E_overlap(conf1, conf2, astype=bool, axis=(-1)):
@@ -879,6 +900,9 @@ if __name__ == "__main__":
     )
     dovt = ovt - movt
     dse = np.array(data_obs["se"]) - np.array(data_obs["mse"])
+    Rse = (np.array(data_obs["se_rnd"]) - np.array(data_obs["se"])) / np.array(data_obs["se_rnd"])
+    Rmse = (np.array(data_obs["mse_rnd"]) - np.array(data_obs["mse"])) / np.array(data_obs["mse_rnd"])
+    dRse = Rse-Rmse
     if print_it:
         dov_it = np.array(data_obs_it["ov0"]) - np.array(data_obs_it["mov0"])
         ovt_it = (np.array(data_obs_it["ov0"]) - np.array(data_obs_it["ov0_rnd"])) / (
@@ -912,7 +936,12 @@ if __name__ == "__main__":
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
+                    data_obs["se_rnd"][i],
+                    data_obs["mse_rnd"][i],
                     dse[i],
+                    Rse[i],
+                    Rmse[i],
+                    dRse[i],
                     data_obs["logL"][i],
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
@@ -973,7 +1002,12 @@ if __name__ == "__main__":
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
+                    data_obs["se_rnd"][i],
+                    data_obs["mse_rnd"][i],
                     dse[i],
+                    Rse[i],
+                    Rmse[i],
+                    dRse[i],
                     data_obs["logL"][i],
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
@@ -1035,7 +1069,12 @@ if __name__ == "__main__":
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
+                    data_obs["se_rnd"][i],
+                    data_obs["mse_rnd"][i],
                     dse[i],
+                    Rse[i],
+                    Rmse[i],
+                    dRse[i],
                     data_obs["logL"][i],
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
@@ -1096,7 +1135,12 @@ if __name__ == "__main__":
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
+                    data_obs["se_rnd"][i],
+                    data_obs["mse_rnd"][i],
                     dse[i],
+                    Rse[i],
+                    Rmse[i],
+                    dRse[i],
                     data_obs["logL"][i],
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
@@ -1146,7 +1190,12 @@ if __name__ == "__main__":
     ovt = r"$\widetilde{O}_{t=0}$"
     movt = r"$\widetilde{MO}_{t=0}$"
     dovt = r"$\widetilde{\delta O}_{t=0}$"
+    se_rnd = r"$SE_{RND}$"
+    mse_rnd = r"$MSE_{RND}$"
     dse = r"$\delta SE$"
+    Rse =  r"$\widetilde{SE}$"
+    Rmse =  r"$\widetilde{MSE}$"
+    dRse =  r"$\widetilde{\delta SE}$"
     se = "SE"
     mse = "MSE"
 
@@ -1173,7 +1222,12 @@ if __name__ == "__main__":
             "error",
             se,
             mse,
+            se_rnd,
+            mse_rnd,
             dse,
+            Rse,
+            Rmse,
+            dRse,
             "logLikelihood",
             "# iter",
             "T",
@@ -1198,7 +1252,12 @@ if __name__ == "__main__":
     data_frame["error"] = data_frame["error"].astype(float)
     data_frame[se] = data_frame["SE"].astype(float)
     data_frame[mse] = data_frame["MSE"].astype(float)
+    data_frame[se_rnd] = data_frame[se_rnd].astype(float)
+    data_frame[mse_rnd] = data_frame[mse_rnd].astype(float)
     data_frame[dse] = data_frame[dse].astype(float)
+    data_frame[Rse] = data_frame[Rse].astype(float)
+    data_frame[Rmse] = data_frame[Rmse].astype(float)
+    data_frame[dRse] = data_frame[dRse].astype(float)
     data_frame["logLikelihood"] = data_frame["logLikelihood"].astype(float)
     data_frame["# iter"] = data_frame["# iter"].astype(float)
     data_frame["T"] = data_frame["T"].astype(int)
