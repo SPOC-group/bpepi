@@ -82,7 +82,26 @@ def generate_M_obs(conf, M=0):
                 obs_temp = (i, 0, t_inf[0] - 1)
                 obs_sim.append((obs_temp))
     obs_sim = sorted(obs_sim, key=lambda tup: tup[2])
-    return obs_sim
+    fI = 1
+    return obs_sim, fI
+
+def generate_snapshot_obs(conf, frac_obs=0.0):
+    """[summary]
+
+    Args:
+        conf ([type]): [description]
+        frac_obs (float, optional): [description]. Defaults to 0.1.
+
+    Returns:
+        [type]: [description]
+    """
+    obs_sim = []
+    N = len(conf[0])
+    T = len(conf)
+    tS = random.choice(range(T))
+    fI = conf[tS].mean()
+    obs_sim = [ (i, conf[tS,i], tS) for i in range(N) if np.random.random() < frac_obs]
+    return obs_sim, fI, tS
 
 
 def generate_obs(conf, frac_obs=0.0):
@@ -111,7 +130,8 @@ def generate_obs(conf, frac_obs=0.0):
                     obs_temp = (i, 0, t_inf[0] - 1)
                     obs_sim.append((obs_temp))
     obs_sim = sorted(obs_sim, key=lambda tup: tup[2])
-    return obs_sim
+    fI = 1
+    return obs_sim, fI
 
 
 def iter_print(t, e, f):
@@ -149,20 +169,21 @@ def create_data_obs(flag_sources, flag_obs, n_sim, N, d, lam, n_iter, pseed):
     data_obs["marginal0"] = []
     data_obs["sim"] = []
     data_obs["T_table"] = []
+    data_obs["fI"] = []
     # data_obs["obs_table"] = []#np.zeros((n_M, n_sim, N))
 
     return data_obs
 
 
 def fill_data_obs(
-    data_obs, f, status_nodes, T, it, e, init, M, S, sim, flag_sources, flag_obs
+    data_obs, f, status_nodes, TO, it, e, init, M, S, sim, flag_sources, flag_obs, fI
 ):
     Bs = f.marginals()
     Ms0 = Bs[:, 0]
     Ss = status_nodes
     ti_str = ti_star(Ss)
 
-    data_obs["T_table"].append(T)
+    data_obs["T_table"].append(TO)
     # data_obs["obs_table"].append( obs_table)
     if flag_obs:
         data_obs["rho"].append(M)
@@ -175,6 +196,7 @@ def fill_data_obs(
     data_obs["sim"].append(sim)
 
     data_obs["init"].append(init)
+    data_obs["fI"].append(fI)
     data_obs["ov0"].append(E_overlap(Ss[0], (Ms0 > 0.5)))
     data_obs["ov0_rnd"].append(E_overlap_rnd(Ss[0], Ms0))
     data_obs["mov0"].append(M_overlap(Ms0))
@@ -201,6 +223,7 @@ def create_data_obs_it(flag_sources, flag_obs, n_sim, N, d, lam, n_iter, pseed):
     data_obs_it["n_iter"] = n_iter
     data_obs_it["pseed"] = pseed
     data_obs_it["init"] = []
+    data_obs_it["fI"] = []
     data_obs_it["sim"] = []
     data_obs_it["converged"] = []
     if flag_obs:
@@ -230,7 +253,7 @@ def fill_data_obs_it(
     data_obs_it,
     f,
     status_nodes,
-    T,
+    TO,
     it,
     e,
     init,
@@ -242,12 +265,14 @@ def fill_data_obs_it(
     sim,
     flag_sources,
     flag_obs,
+    fI
 ):
     Bs = f.marginals()
     Ms0 = Bs[:, 0]
     Ss = status_nodes
 
     data_obs_it["init"].append(init)
+    data_obs_it["fI"].append(fI)
     data_obs_it["sim"].append(sim)
     if flag_obs:
         data_obs_it["rho"].append(M)
@@ -279,7 +304,7 @@ def sim_and_fill(
     tol,
     print_it,
     status_nodes,
-    T,
+    TO,
     init,
     M,
     S,
@@ -287,6 +312,7 @@ def sim_and_fill(
     sim,
     flag_sources,
     flag_obs,
+    fI
 ):
     tol2 = 1e-2
     it_max = 10000
@@ -305,7 +331,7 @@ def sim_and_fill(
             data_obs_it,
             f,
             status_nodes,
-            T,
+            TO,
             0,
             e,
             init,
@@ -317,6 +343,7 @@ def sim_and_fill(
             sim,
             flag_sources,
             flag_obs,
+            fI
         )
     for it in range(n_iter):
         e = f.iterate()
@@ -328,7 +355,7 @@ def sim_and_fill(
                 data_obs_it,
                 f,
                 status_nodes,
-                T,
+                TO,
                 it + 1,
                 e,
                 init,
@@ -340,6 +367,7 @@ def sim_and_fill(
                 sim,
                 flag_sources,
                 flag_obs,
+                fI
             )
         if e < tol:
             break
@@ -352,7 +380,7 @@ def sim_and_fill(
                 data_obs_it,
                 f,
                 status_nodes,
-                T,
+                TO,
                 it + 1,
                 e,
                 init,
@@ -364,11 +392,12 @@ def sim_and_fill(
                 sim,
                 flag_sources,
                 flag_obs,
+                fI
             )
         if it == it_max:
             break
     fill_data_obs(
-        data_obs, f, status_nodes, T, it + 1, e, init, M, S, sim, flag_sources, flag_obs
+        data_obs, f, status_nodes, TO, it + 1, e, init, M, S, sim, flag_sources, flag_obs, fI
     )
 
 
@@ -756,6 +785,14 @@ if __name__ == "__main__":
         help="Space between saved iterations",
     )
 
+    parser.add_argument(
+        "--snap",
+        type=int,
+        default=0,
+        dest="snap",
+        help="Snapshot observation",
+    )
+
     args = parser.parse_args()
     print("arguments:")
     print(args)
@@ -818,6 +855,7 @@ if __name__ == "__main__":
     tol = args.tol
     n_iter = args.n_iter
     iter_space = args.iter_space
+    snap = args.snap
 
     data_obs = create_data_obs(flag_sources, flag_obs, n_sim, N, d, lam, n_iter, pseed)
     if print_it:
@@ -838,12 +876,17 @@ if __name__ == "__main__":
                     status_nodes = generate_one_conf_delta_allI(g, lamb=lam, delta=S)
                 T = len(status_nodes) - 1
                 contacts = generate_contacts(g, T, lam)
-                if args.rho[0] == -1:
-                    list_obs = generate_M_obs(status_nodes, M=M)
-                    list_obs_all = generate_M_obs(status_nodes, M=N)
+                if (snap):
+                    list_obs, fI, TO = generate_snapshot_obs(status_nodes, frac_obs=M)
+                    list_obs_all, _ = generate_obs(status_nodes, frac_obs=1)
                 else:
-                    list_obs = generate_obs(status_nodes, frac_obs=M)
-                    list_obs_all = generate_obs(status_nodes, frac_obs=1)
+                    if args.rho[0] == -1:
+                        list_obs, fI = generate_M_obs(status_nodes, M=M)
+                        list_obs_all, _ = generate_M_obs(status_nodes, M=N)
+                    else:
+                        list_obs, fI = generate_obs(status_nodes, frac_obs=M)
+                        list_obs_all, _ = generate_obs(status_nodes, frac_obs=1)
+                    TO=T
 
                 f_rnd = FactorGraph(N=N, T=T, contacts=contacts, obs=[], delta=S)
                 f_informed = FactorGraph(
@@ -859,7 +902,7 @@ if __name__ == "__main__":
                     tol,
                     print_it,
                     status_nodes,
-                    T,
+                    TO,
                     "rnd",
                     M,
                     S,
@@ -867,6 +910,7 @@ if __name__ == "__main__":
                     sim,
                     flag_sources,
                     flag_obs,
+                    fI
                 )
                 sim_and_fill(
                     f_informed,
@@ -877,7 +921,7 @@ if __name__ == "__main__":
                     tol,
                     print_it,
                     status_nodes,
-                    T,
+                    TO,
                     "inf",
                     M,
                     S,
@@ -885,6 +929,7 @@ if __name__ == "__main__":
                     sim,
                     flag_sources,
                     flag_obs,
+                    fI
                 )
                 print(
                     f"\r S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
@@ -946,6 +991,7 @@ if __name__ == "__main__":
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
                     data_obs["sim"][i],
+                    data_obs["fI"][i],
                 ]
                 for i, o in enumerate(data_obs["ov0"])
             ]
@@ -973,6 +1019,7 @@ if __name__ == "__main__":
                         data_obs_it["e"][i],
                         data_obs_it["logL"][i],
                         data_obs_it["sim"][i],
+                        data_obs_it["fI"][i],
                         data_obs_it["converged"][i],
                     ]
                     for i, o in enumerate(data_obs_it["ov0"])
@@ -1012,6 +1059,7 @@ if __name__ == "__main__":
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
                     data_obs["sim"][i],
+                    data_obs["fI"][i],
                 ]
                 for i, o in enumerate(data_obs["ov0"])
             ]
@@ -1039,6 +1087,7 @@ if __name__ == "__main__":
                         data_obs_it["e"][i],
                         data_obs_it["logL"][i],
                         data_obs_it["sim"][i],
+                        data_obs_it["fI"][i],
                         data_obs_it["converged"][i],
                     ]
                     for i, o in enumerate(data_obs_it["ov0"])
@@ -1079,6 +1128,7 @@ if __name__ == "__main__":
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
                     data_obs["sim"][i],
+                    data_obs["fI"][i],
                 ]
                 for i, o in enumerate(data_obs["ov0"])
             ]
@@ -1106,6 +1156,7 @@ if __name__ == "__main__":
                         data_obs_it["e"][i],
                         data_obs_it["logL"][i],
                         data_obs_it["sim"][i],
+                        data_obs_it["fI"][i],
                         data_obs_it["converged"][i],
                     ]
                     for i, o in enumerate(data_obs_it["ov0"])
@@ -1145,6 +1196,7 @@ if __name__ == "__main__":
                     data_obs["nI"][i],
                     data_obs["T_table"][i],
                     data_obs["sim"][i],
+                    data_obs["fI"][i],
                 ]
                 for i, o in enumerate(data_obs["ov0"])
             ]
@@ -1172,6 +1224,7 @@ if __name__ == "__main__":
                         data_obs_it["e"][i],
                         data_obs_it["logL"][i],
                         data_obs_it["sim"][i],
+                        data_obs_it["fI"][i],
                         data_obs_it["converged"][i],
                     ]
                     for i, o in enumerate(data_obs_it["ov0"])
@@ -1196,6 +1249,7 @@ if __name__ == "__main__":
     Rse =  r"$\widetilde{SE}$"
     Rmse =  r"$\widetilde{MSE}$"
     dRse =  r"$\widetilde{\delta SE}$"
+    fI = r"$f_I$"
     se = "SE"
     mse = "MSE"
 
@@ -1232,6 +1286,7 @@ if __name__ == "__main__":
             "# iter",
             "T",
             "sim",
+            fI
         ],
     )
     data_frame[s_N] = data_frame[s_N].astype(int)
@@ -1262,6 +1317,7 @@ if __name__ == "__main__":
     data_frame["# iter"] = data_frame["# iter"].astype(float)
     data_frame["T"] = data_frame["T"].astype(int)
     data_frame["sim"] = data_frame["sim"].astype(int)
+    data_frame[fI] = data_frame[fI].astype(float)
 
     if print_it:
         data_frame_it = pd.DataFrame(
@@ -1288,6 +1344,7 @@ if __name__ == "__main__":
                 "error",
                 "logLikelihood",
                 "sim",
+                fI,
                 "converged",
             ],
         )
@@ -1310,68 +1367,84 @@ if __name__ == "__main__":
         data_frame_it["error"] = data_frame_it["error"].astype(float)
         data_frame_it["logLikelihood"] = data_frame_it["logLikelihood"].astype(float)
         data_frame_it["sim"] = data_frame_it["sim"].astype(int)
+        data_frame_it[fI] = data_frame_it[fI].astype(float)
         data_frame_it["converged"] = data_frame_it["converged"].astype(str)
 
-    timestr = time.strftime("%Y%m%d-%H%M%S.%f")# + "_" + str(random.randint(1,1000))
-    if flag_obs:
-        if flag_sources:
-            data_frame[o] = data_frame[o].astype(float)
-            if print_it:
-                data_frame_it[o] = data_frame_it[o].astype(float)
-            data_frame[s] = data_frame[s].astype(float)
-            if print_it:
-                data_frame_it[s] = data_frame_it[s].astype(float)
-            file_name = (
-                "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}_seed{}_".format(
-                    graph, N, d, S, lam, M, seed
-                )
-                + timestr
-                + ".xz"
+    timestr = time.strftime("%Y%m%d-%H%M%S")# + "_" + str(random.randint(1,1000))
+    if snap:
+        data_frame[o] = data_frame[o].astype(float)
+        if print_it:
+            data_frame_it[o] = data_frame_it[o].astype(float)
+        data_frame[s] = data_frame[s].astype(float)
+        if print_it:
+            data_frame_it[s] = data_frame_it[s].astype(float)
+        file_name = (
+            "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_SNAP_seed{}_".format(
+                graph, N, d, S, lam, seed
             )
-        else:
-            data_frame[o] = data_frame[o].astype(float)
-            if print_it:
-                data_frame_it[o] = data_frame_it[o].astype(float)
-            data_frame[s] = data_frame[s].astype(int)
-            if print_it:
-                data_frame_it[s] = data_frame_it[s].astype(int)
-            file_name = (
-                "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}_seed{}_".format(
-                    graph, N, d, S, lam, M, seed
-                )
-                + timestr
-                + ".xz"
-            )
+            + timestr
+            + ".xz"
+        )    
     else:
-        if flag_sources:
-            data_frame[o] = data_frame[o].astype(int)
-            if print_it:
-                data_frame_it[o] = data_frame_it[o].astype(int)
-            data_frame[s] = data_frame[s].astype(float)
-            if print_it:
-                data_frame_it[s] = data_frame_it[s].astype(float)
-            file_name = (
-                "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}_seed{}_".format(
-                    graph, N, d, S, lam, M, seed
+        if flag_obs:
+            if flag_sources:
+                data_frame[o] = data_frame[o].astype(float)
+                if print_it:
+                    data_frame_it[o] = data_frame_it[o].astype(float)
+                data_frame[s] = data_frame[s].astype(float)
+                if print_it:
+                    data_frame_it[s] = data_frame_it[s].astype(float)
+                file_name = (
+                    "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}_seed{}_".format(
+                        graph, N, d, S, lam, M, seed
+                    )
+                    + timestr
+                    + ".xz"
                 )
-                + timestr
-                + ".xz"
-            )
-
+            else:
+                data_frame[o] = data_frame[o].astype(float)
+                if print_it:
+                    data_frame_it[o] = data_frame_it[o].astype(float)
+                data_frame[s] = data_frame[s].astype(int)
+                if print_it:
+                    data_frame_it[s] = data_frame_it[s].astype(int)
+                file_name = (
+                    "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}_seed{}_".format(
+                        graph, N, d, S, lam, M, seed
+                    )
+                    + timestr
+                    + ".xz"
+                )
         else:
-            data_frame[o] = data_frame[o].astype(int)
-            if print_it:
-                data_frame_it[o] = data_frame_it[o].astype(int)
-            data_frame[s] = data_frame[s].astype(int)
-            if print_it:
-                data_frame_it[s] = data_frame_it[s].astype(int)
-            file_name = (
-                "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}_seed{}_".format(
-                    graph, N, d, S, lam, M, seed
+            if flag_sources:
+                data_frame[o] = data_frame[o].astype(int)
+                if print_it:
+                    data_frame_it[o] = data_frame_it[o].astype(int)
+                data_frame[s] = data_frame[s].astype(float)
+                if print_it:
+                    data_frame_it[s] = data_frame_it[s].astype(float)
+                file_name = (
+                    "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}_seed{}_".format(
+                        graph, N, d, S, lam, M, seed
+                    )
+                    + timestr
+                    + ".xz"
                 )
-                + timestr
-                + ".xz"
-            )
+
+            else:
+                data_frame[o] = data_frame[o].astype(int)
+                if print_it:
+                    data_frame_it[o] = data_frame_it[o].astype(int)
+                data_frame[s] = data_frame[s].astype(int)
+                if print_it:
+                    data_frame_it[s] = data_frame_it[s].astype(int)
+                file_name = (
+                    "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}_seed{}_".format(
+                        graph, N, d, S, lam, M, seed
+                    )
+                    + timestr
+                    + ".xz"
+                )
 
     if print_it:
         saveObj = (data_frame, data_frame_it, np.array(data_obs["marginal0"]))
