@@ -160,7 +160,8 @@ def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full con
             ** np.heaviside(x1 - x2 - np.reshape(c2, (c2.shape[0], 1, 1)) - 1, 0),
             (len(idx), T + 2, T + 2),
         )
-        
+
+
 def compute_Lambdas2(Lambda0, Lambda1, contacts):  # change to loop over full contacts
     """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
     Args:
@@ -179,7 +180,7 @@ def compute_Lambdas2(Lambda0, Lambda1, contacts):  # change to loop over full co
         for c in contacts_T:
             idx[i] = Lambda0.get_idx_ij(int(c[0]), int(c[1]))
             i += 1
-            
+
         heaviside0 = np.zeros((1, T + 2, T + 2))
         heaviside1 = np.zeros((1, T + 2, T + 2))
         for i in range(T + 2):
@@ -190,7 +191,7 @@ def compute_Lambdas2(Lambda0, Lambda1, contacts):  # change to loop over full co
                     heaviside1[0][i][j] = 1
         heaviside0 = np.tile(heaviside0, (len(idx), 1, 1))
         heaviside1 = np.tile(heaviside1, (len(idx), 1, 1))
-        
+
         Lambda0.values[idx] = Lambda0.values[idx] * np.reshape(
             (np.reshape((1 - c3), (c3.shape[0], 1, 1)) * np.ones((1, T + 2, T + 2)))
             ** heaviside0,
