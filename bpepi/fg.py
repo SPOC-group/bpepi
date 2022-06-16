@@ -1,11 +1,11 @@
 import numpy as np
-from st import SparseTensor, compute_Lambdas
+from bpepi.st import SparseTensor, compute_Lambdas
 
 
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
-    def __init__(self, N, T, contacts, obs, delta):
+    def __init__(self, N, T, contacts, obs, delta, verbose=False):
         """Construction of the FactorGraph object, starting from contacts and observations
 
         Args:
@@ -15,6 +15,9 @@ class FactorGraph:
             obs (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
         """
         self.messages = SparseTensor(N, T, contacts)
+        if verbose:
+            print("Messages matrices created")
+
         self.size = N
         self.time = T
         self.delta = delta
@@ -25,7 +28,13 @@ class FactorGraph:
         )  # messages only depend on lambda through Lambda matrices.
         self.Lambda1 = SparseTensor(Tensor_to_copy=self.messages)
 
+        if verbose:
+            print("Lambdas matrices created")
+
         compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
+
+        if verbose:
+            print("Lambdas matrices computed")
 
         self.observations = np.ones((N, T + 2))  # creating the mask for observations
         for o in obs:
@@ -34,42 +43,49 @@ class FactorGraph:
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
 
-        self.out_msgs = np.array([], dtype = 'int')
-        self.inc_msgs = np.array([], dtype = 'int')
-        self.repeat_deg = np.array([], dtype = 'int')
-        self.obs_i = np.array([], dtype = 'int')
+        if verbose:
+            print("Observations array created")
+
+        self.out_msgs = np.array([], dtype="int")
+        self.inc_msgs = np.array([], dtype="int")
+        self.repeat_deg = np.array([], dtype="int")
+        self.obs_i = np.array([], dtype="int")
 
         for i in range(len(self.messages.idx_list)):
-            #add messages incoming to node i to self.inc_msgs
-            self.inc_msgs = np.concatenate((self.inc_msgs,
-                                            self.messages.idx_list[i]), axis = 0)
+            # add messages incoming to node i to self.inc_msgs
+            self.inc_msgs = np.concatenate(
+                (self.inc_msgs, self.messages.idx_list[i]), axis=0
+            )
             num_neighbours = len(self.messages.idx_list[i])
             self.repeat_deg = np.append(self.repeat_deg, num_neighbours)
             for j in range(num_neighbours):
-                #get the inverse of messages just added to self.inc_msgs
+                # get the inverse of messages just added to self.inc_msgs
                 k = self.messages.adj_list[i][j]
                 self.obs_i = np.concatenate((self.obs_i, np.array([i])))
                 jnd = np.where(np.array(self.messages.adj_list[k]) == i)[0]
-                self.out_msgs = np.concatenate((self.out_msgs,
-                                                self.messages.idx_list[k][jnd]),
-                                               axis = 0)
+                self.out_msgs = np.concatenate(
+                    (self.out_msgs, self.messages.idx_list[k][jnd]), axis=0
+                )
 
         self.reduce_idxs = np.delete(np.cumsum(self.repeat_deg), -1)
-        self.reduce_idxs = np.concatenate((np.array([0]), self.reduce_idxs),
-                                          axis = 0)
+        self.reduce_idxs = np.concatenate((np.array([0]), self.reduce_idxs), axis=0)
 
-        #define Lambda tensors used in update
+        if verbose:
+            print("Lists of neighbors created")
+
+        # define Lambda tensors used in update
         self.Lambda0_tilde = np.copy(self.Lambda0.values[self.inc_msgs])
         self.Lambda1_tilde = np.copy(self.Lambda1.values[self.inc_msgs])
+        if verbose:
+            print("Copied lambdas matrices computed")
 
     def get_gamma(self, arr, reduce_idxs, repeat_deg):
         epsilon = 1e-20
         arr[arr == 0] = epsilon
         arr_2 = np.log(arr)
         arr_copy = np.copy(arr_2)
-        arr_3 = np.add.reduceat(arr_2, reduce_idxs,
-                                        axis = 0)
-        arr_4 = np.repeat(arr_3, repeat_deg, axis = 0)
+        arr_3 = np.add.reduceat(arr_2, reduce_idxs, axis=0)
+        arr_4 = np.repeat(arr_3, repeat_deg, axis=0)
         arr_5 = np.exp(arr_4 - arr_copy)
         return arr_5
 
@@ -78,58 +94,62 @@ class FactorGraph:
         old_msgs = np.copy(self.messages.values)
         msgs_tilde = old_msgs[self.inc_msgs]
 
-        #calculate gamma matrices
-        gamma0_hat = np.sum(msgs_tilde * self.Lambda0_tilde,
-                         axis = 1, keepdims = 1)
-        gamma1_hat = np.sum(msgs_tilde * self.Lambda1_tilde,
-                         axis = 1, keepdims = 1)
+        # calculate gamma matrices
+        gamma0_hat = np.sum(msgs_tilde * self.Lambda0_tilde, axis=1, keepdims=1)
+        gamma1_hat = np.sum(msgs_tilde * self.Lambda1_tilde, axis=1, keepdims=1)
         gamma0 = self.get_gamma(gamma0_hat, self.reduce_idxs, self.repeat_deg)
         gamma1 = self.get_gamma(gamma1_hat, self.reduce_idxs, self.repeat_deg)
 
-        #calculate part one of update
-        one_obs = (1-self.delta) * np.reshape(self.observations[self.obs_i],
-                                              (len(self.out_msgs), 1, T+2))
-        #due to floating point errors accrued when using np.log and np.exp
-        #the substraction can sometimes give an extemely small negative result.
-        #Therefore a hard cutoff is implemented to bring these values to zero.
-        one_main = np.clip(self.Lambda1_tilde * gamma1
-                           - self.Lambda0_tilde * gamma0, 0, 1)
-        one = np.transpose(one_obs * one_main, (0, 2, 1))[:,1:T+1,:]
+        # calculate part one of update
+        one_obs = (1 - self.delta) * np.reshape(
+            self.observations[self.obs_i], (len(self.out_msgs), 1, T + 2)
+        )
+        # due to floating point errors accrued when using np.log and np.exp
+        # the substraction can sometimes give an extemely small negative result.
+        # Therefore a hard cutoff is implemented to bring these values to zero.
+        one_main = np.clip(
+            self.Lambda1_tilde * gamma1 - self.Lambda0_tilde * gamma0, 0, 1
+        )
+        one = np.transpose(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
 
-        #calculate part two of update
-        two_obs = self.delta * self.observations[self.obs_i][:,0]
-        two_msgs = np.sum(msgs_tilde[:,:,0], axis = 1)
+        # calculate part two of update
+        two_obs = self.delta * self.observations[self.obs_i][:, 0]
+        two_msgs = np.sum(msgs_tilde[:, :, 0], axis=1)
         two_main = self.get_gamma(two_msgs, self.reduce_idxs, self.repeat_deg)
-        two = np.reshape(np.tile(np.reshape(two_obs * two_main,
-                                            (len(self.out_msgs),1)), T+2),
-                         (len(self.out_msgs),1,T+2))
+        two = np.reshape(
+            np.tile(np.reshape(two_obs * two_main, (len(self.out_msgs), 1)), T + 2),
+            (len(self.out_msgs), 1, T + 2),
+        )
 
-        #calculate part three of update
+        # calculate part three of update
         three_obs = (1 - self.delta) * np.reshape(
-            self.observations[self.obs_i][:,T+1], (len(self.out_msgs), 1))
-        gamma1_reshaped = np.reshape(gamma1[:,0,T+1], (len(self.out_msgs), 1))
-        three_main = self.Lambda1_tilde[:,:,T+1] * gamma1_reshaped
-        three = np.reshape(three_obs * three_main, (len(self.out_msgs), 1, T+2))
+            self.observations[self.obs_i][:, T + 1], (len(self.out_msgs), 1)
+        )
+        gamma1_reshaped = np.reshape(gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
+        three_main = self.Lambda1_tilde[:, :, T + 1] * gamma1_reshaped
+        three = np.reshape(three_obs * three_main, (len(self.out_msgs), 1, T + 2))
 
-        #update the message values
-        update_one = np.concatenate((np.zeros((len(self.out_msgs), 1, T+2)),
-                                     one,
-                                     np.zeros((len(self.out_msgs), 1, T+2))),
-                                    axis = 1)
-        update_two = np.concatenate((two,
-                                     np.zeros((len(self.out_msgs), T+1, T+2))),
-                                    axis = 1)
-        update_three = np.concatenate((np.zeros((len(self.out_msgs), T+1, T+2)),
-                                       three),
-                                      axis = 1)
+        # update the message values
+        update_one = np.concatenate(
+            (
+                np.zeros((len(self.out_msgs), 1, T + 2)),
+                one,
+                np.zeros((len(self.out_msgs), 1, T + 2)),
+            ),
+            axis=1,
+        )
+        update_two = np.concatenate(
+            (two, np.zeros((len(self.out_msgs), T + 1, T + 2))), axis=1
+        )
+        update_three = np.concatenate(
+            (np.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
+        )
         new_msgs = update_one + update_two + update_three
-        norm = np.reshape(np.sum(new_msgs, axis= (1, 2)),
-                          (len(self.out_msgs), 1, 1))
+        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
         self.messages.values[self.out_msgs] = new_msgs / norm
         difference = np.abs(old_msgs - self.messages.values).max()
 
         return difference
-
 
     def pop_dyn_RRG(self, c=3):
         """Single iteration of the Population dynamics algorithm for a d-RRG
@@ -174,7 +194,7 @@ class FactorGraph:
 
         return difference
 
-    def update(self, maxit=100, tol=1e-6):
+    def update(self, maxit=100, tol=1e-6, print_iter=None):
         """Multiple iterations of the BP algorithm through the method iterate()
 
         Args:
@@ -190,6 +210,8 @@ class FactorGraph:
         while i < maxit and error > tol:
             error = self.iterate()
             i += 1
+            if print_iter != None:
+                print_iter(error, i)
         return i, error
 
     def marginals(self):
