@@ -17,8 +17,12 @@
 >>> params = pickle.load(open(path+'/params', 'rb'))
 >>> sib_marginals = np.load(path+'/sib_marginals.npz')['arr_0']
 >>> code_fg = fg.FactorGraph(params[0], params[1], contacts, list_obs, params[2])
->>> code_fg.update(maxit=200, tol=1e-10)
-(16, 0.0)
+>>> lambdas = np.load(path + "/Lambdas.npz")
+>>> print(np.array_equal(code_fg.Lambda0.values, lambdas['l0']))
+True
+>>> print(np.array_equal(code_fg.Lambda1.values, lambdas['l1']))
+True
+>>> a = code_fg.update(maxit=200, tol=1e-10);
 >>> code_marginals = code_fg.marginals()
 >>> print(f"{np.sum(code_marginals[:,0])/params[0]:.4f}")
 0.0095
@@ -30,8 +34,7 @@ True
 >>> params = pickle.load(open(path+'/params', 'rb'))
 >>> sib_marginals = np.load(path+'/sib_marginals.npz')['arr_0']
 >>> code_fg = fg.FactorGraph(params[0], params[1], contacts, list_obs, params[2])
->>> code_fg.update(maxit=200, tol=1e-10)
-(16, 0.0)
+>>> a = code_fg.update(maxit=200, tol=1e-10);
 >>> code_marginals = code_fg.marginals()
 >>> print(f"{np.sum(code_marginals[:,0])/params[0]:.4f}")
 0.0095

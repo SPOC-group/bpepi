@@ -126,7 +126,9 @@ class SparseTensor:
         return incoming_indices, outgoing_indices
 
 
-def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full contacts
+def compute_Lambdas_old(
+    Lambda0, Lambda1, contacts
+):  # change to loop over full contacts
     """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
     Args:
         Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
@@ -162,7 +164,7 @@ def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full con
         )
 
 
-def compute_Lambdas2(Lambda0, Lambda1, contacts):  # change to loop over full contacts
+def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full contacts
     """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
     Args:
         Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
