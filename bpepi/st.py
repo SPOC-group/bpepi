@@ -156,3 +156,43 @@ def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full con
     # Makes the cumulative products to compute the final version of Lambdas matrices
     Lambda1.values = np.cumprod(Lambda1.values, axis=2)
     Lambda0.values = np.cumprod(Lambda0.values, axis=2)
+
+def compute_Lambdas_dSIR(Lambda0, Lambda1, contacts, mask):  # added mask to work with deterministic SIR model
+    """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
+    Args:
+        Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
+        Lambda1 (SparseTensor): SparseTensor useful to update the BP messages
+        contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+        mask (list): List of infectivity coefficients, given as [c_{t_j+1}, c_{t_j+2}, ...]
+    """
+    Tp2 = len(Lambda0.values[0][0])
+    Lambda1.values[:] = 0
+    Lambda0.values[:] = 0
+
+    # populated the tensor with the lambdas values
+    for cc in contacts:
+        # print(cc[0], cc[1])
+        Lambda1.get_ij(cc[0], cc[1])[:, cc[2] + 2] = cc[3]
+        Lambda0.get_ij(cc[0], cc[1])[:, cc[2] + 1] = cc[3]
+
+    # fill the lower triangular matrix lambdas with 0
+    n_dim = Lambda1.values.shape[1]
+    a, b = np.tril_indices(n_dim, k=1)
+    Lambda1.values[:, a, b] = 0
+    a, b = np.tril_indices(n_dim, k=0)
+    Lambda0.values[:, a, b] = 0
+
+    # Compute and apply the infectivity masks
+    Mask0 = np.array([ np.asarray(([1]*(tj+1) + mask + [0]*(Tp2-len(mask)-tj-1) )[:Tp2]) for tj in range(Tp2) ])
+    Mask1 = np.array([ np.asarray(([1]*(tj+2) + mask + [0]*(Tp2-len(mask)-tj-2) )[:Tp2]) for tj in range(Tp2) ])
+
+    Lambda0.values[:] = Lambda0.values[:]*Mask0
+    Lambda1.values[:] = Lambda1.values[:]*Mask1
+
+    # takes 1 - lambdas
+    Lambda1.values = 1 - Lambda1.values
+    Lambda0.values = 1 - Lambda0.values
+
+    # Makes the cumulative products to compute the final version of Lambdas matrices
+    Lambda1.values = np.cumprod(Lambda1.values, axis=2)
+    Lambda0.values = np.cumprod(Lambda0.values, axis=2)

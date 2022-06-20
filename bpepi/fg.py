@@ -1,5 +1,5 @@
 import numpy as np
-from bpepi.st import SparseTensor, compute_Lambdas
+from st import SparseTensor, compute_Lambdas
 
 
 class FactorGraph:
