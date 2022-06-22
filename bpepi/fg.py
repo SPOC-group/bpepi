@@ -1,5 +1,5 @@
 import numpy as np
-from st import SparseTensor, compute_Lambdas_dSIR
+from st import SparseTensor, compute_Lambdas, compute_Lambdas_dSIR
 
 
 class FactorGraph:
@@ -32,6 +32,7 @@ class FactorGraph:
             print("Lambdas matrices created")
 
         compute_Lambdas_dSIR(self.Lambda0, self.Lambda1, contacts, mask)
+        #compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
 
         if verbose:
             print("Lambdas matrices computed")
@@ -232,6 +233,10 @@ class FactorGraph:
             marg = np.sum(
                 inc_msg * np.transpose(out_msg), axis=0
             )  # transpose outgoing message so index to sum over after broadcasting is 0.
+            #DEBUG CHECK
+            #if (marg.sum()==0):
+            #    print(f"INC{inc_msg}")
+            #    print(f"OUT{np.transpose(out_msg)}")
             marginals.append(marg / marg.sum())
         return np.asarray(marginals)
 

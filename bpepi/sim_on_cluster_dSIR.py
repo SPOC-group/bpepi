@@ -247,7 +247,7 @@ def fill_data_obs(
     data_obs["nI"].append(it)
     data_obs["e"].append(e)
     data_obs["logL"].append(f.loglikelihood())
-    data_obs["marginal0"].append(MT[1])
+    data_obs["marginal0"].append(MT)
 
 
 def create_data_obs_it(flag_sources, flag_obs, n_sim, N, d, lam, n_iter, pseed):
@@ -519,24 +519,26 @@ def simulate_one_detSIR(G, p_inf = 0.01, mask = ["SI"]):
     status_nodes = []
     s0 = []
     flag_s=0
+    flag_m = 1
+    if mask == ["SI"] : 
+        mask = [1]
+        flag_m = 0
+    counter = [mask.copy() for _ in range(N)]
+    coeff_lam = np.ones(N)
     for i in range(N):
         if np.random.rand() < p_inf : 
             s0.append(1)
+            coeff_lam[i]=counter[i][0]
+            if flag_m : counter[i].pop(0)
             flag_s =1
         else : s0.append(0)
 
     if (flag_s==0) : 
         s0[np.random.randint(0,N)]=1
         print("No sources... adding a single random source")
-    status_nodes.append(s0)
+    status_nodes.append(np.array(s0))
     # Generate the epidemics
-    flag_m = 1
-    if mask == ["SI"] : 
-        mask = [1]
-        flag_m = 0
     st = np.copy(s0)
-    counter = [mask.copy() for _ in range(N)]
-    coeff_lam = np.ones(N)
     while ((flag_m==1 and 1 in status_nodes[-1]) or (flag_m==0 and 0 in status_nodes[-1])):
         st_minus_1 = np.copy(st)
         coeff_minus_1 = coeff_lam.copy()
@@ -548,7 +550,10 @@ def simulate_one_detSIR(G, p_inf = 0.01, mask = ["SI"]):
                     if flag_m : counter[i].pop(0)
             elif st[i] == 0 :
                 for j in nx.neighbors(G,i) :
-                    if (st_minus_1[j]==1 and np.random.rand() < G.edges[j,i]['lambda']*coeff_minus_1[j]): st[i]=1
+                    if (st_minus_1[j]==1 and np.random.rand() < G.edges[j,i]['lambda']*coeff_minus_1[j] and st[i]==0): 
+                        st[i]=1
+                        coeff_lam[i]=counter[i][0]
+                        if flag_m : counter[i].pop(0)
         status_nodes.append(np.copy(st))
     return np.array(status_nodes)
 
@@ -981,9 +986,9 @@ if __name__ == "__main__":
                         list_obs_all, _ = generate_obs(status_nodes, frac_obs=1)
                     TO=T
 
-                f_rnd = FactorGraph(N=N, T=T, contacts=contacts, obs=[], delta=S)
+                f_rnd = FactorGraph(N=N, T=T, contacts=contacts, obs=[], delta=S, mask=mask)
                 f_informed = FactorGraph(
-                    N=N, T=T, contacts=contacts, obs=list_obs_all, delta=S
+                    N=N, T=T, contacts=contacts, obs=list_obs_all, delta=S, mask=mask
                 )
 
                 sim_and_fill(
