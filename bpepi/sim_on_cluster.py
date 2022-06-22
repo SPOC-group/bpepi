@@ -519,7 +519,7 @@ def ti_star(S):
         [type]: [description]
     """
     N = len(S[0])
-    T = len(S)
+    T = len(S)-1
     ti = np.zeros(N)
     for i in range(N):
         t_inf = np.nonzero(S[:, i] == 1)[0]

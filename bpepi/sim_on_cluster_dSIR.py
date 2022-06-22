@@ -201,10 +201,13 @@ def create_data_obs(flag_sources, flag_obs, n_sim, N, d, lam, n_iter, pseed, Del
 
 
 def fill_data_obs(
-    data_obs, f, status_nodes, TO, it, e, init, M, S, sim, flag_sources, flag_obs, fI, T
+    data_obs, f, status_nodes, TO, it, e, init, M, S, sim, flag_sources, flag_obs, fI, T, Delta
 ):
     Bs = f.marginals()
-    #Ms0 = Bs[:, 0]
+    MI0 = Bs[:, 0]
+    MS0 = 1-MI0
+    MR0 = np.zeros_like(MS0)
+    M0 = np.array([ MS0, MI0, MR0])
     #Compute general marginals:
     pS = 1 - np.cumsum(Bs,axis=1)
     pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T+2)]) for b in Bs])
@@ -216,6 +219,7 @@ def fill_data_obs(
     MRT = pR[:,T]
     MT = np.array([ MST, MIT, MRT])
     Ss = status_nodes
+    x0_inf = np.argmax(M0,axis=0)
     xT_inf = np.argmax(MT,axis=0)
     ti_str = ti_star(Ss)
 
@@ -234,10 +238,14 @@ def fill_data_obs(
 
     data_obs["init"].append(init)
     data_obs["fI"].append(fI)
-    data_obs["ov0"].append(E_overlap(Ss[T], xT_inf))
-    data_obs["ov0_rnd"].append(E_overlap_rnd(Ss[T], MT))
-    data_obs["mov0"].append(M_overlap(MT))
-    data_obs["mov0_rnd"].append(M_overlap_rnd(MT))
+    data_obs["ov0"].append(E_overlap(Ss[0], x0_inf))
+    data_obs["ov0_rnd"].append(E_overlap_rnd(Ss[0], M0))
+    data_obs["mov0"].append(M_overlap(M0))
+    data_obs["mov0_rnd"].append(M_overlap_rnd(M0))
+    data_obs["ovT"].append(E_overlap(Ss[T], xT_inf))
+    data_obs["ovT_rnd"].append(E_overlap_rnd(Ss[T], MT))
+    data_obs["movT"].append(M_overlap(MT))
+    data_obs["movT_rnd"].append(M_overlap_rnd(MT))
     ti_inf = ti_inferred(Bs)
     ti_rnd = ti_random(Bs)
     data_obs["se"].append(E_SE(ti_str, ti_inf))
@@ -352,7 +360,8 @@ def sim_and_fill(
     flag_sources,
     flag_obs,
     fI,
-    T
+    T,
+    Delta
 ):
     tol2 = 1e-2
     it_max = 10000
@@ -440,7 +449,7 @@ def sim_and_fill(
         if it == it_max:
             break
     fill_data_obs(
-        data_obs, f, status_nodes, TO, it + 1, e, init, M, S, sim, flag_sources, flag_obs, fI, T
+        data_obs, f, status_nodes, TO, it + 1, e, init, M, S, sim, flag_sources, flag_obs, fI, T, Delta
     )
 
 
@@ -605,7 +614,7 @@ def ti_star(S):
         [type]: [description]
     """
     N = len(S[0])
-    T = len(S)
+    T = len(S)-1
     ti = np.zeros(N)
     for i in range(N):
         t_inf = np.nonzero(S[:, i] == 1)[0]
@@ -979,12 +988,13 @@ if __name__ == "__main__":
                     list_obs_all, _ = generate_obs(status_nodes, frac_obs=1)
                 else:
                     if args.rho[0] == -1:
-                        list_obs, fI = generate_M_obs(status_nodes, M=M)
+                        list_obs, _ = generate_M_obs(status_nodes, M=M)
                         list_obs_all, _ = generate_M_obs(status_nodes, M=N)
                     else:
-                        list_obs, fI = generate_obs(status_nodes, frac_obs=M)
+                        list_obs, _ = generate_obs(status_nodes, frac_obs=M)
                         list_obs_all, _ = generate_obs(status_nodes, frac_obs=1)
                     TO=T
+                    fI = np.mean(status_nodes[-1]==2)
 
                 f_rnd = FactorGraph(N=N, T=T, contacts=contacts, obs=[], delta=S, mask=mask)
                 f_informed = FactorGraph(
@@ -1009,7 +1019,8 @@ if __name__ == "__main__":
                     flag_sources,
                     flag_obs,
                     fI,
-                    T
+                    T,
+                    Delta
                 )
                 sim_and_fill(
                     f_informed,
@@ -1029,26 +1040,35 @@ if __name__ == "__main__":
                     flag_sources,
                     flag_obs,
                     fI,
-                    T
+                    T,
+                    Delta
                 )
                 print(
                     f"\r S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
                 )
                 t2 = time.time()
 
-    dov = np.array(data_obs["ov0"]) - np.array(data_obs["mov0"])
-    ovt = (np.array(data_obs["ov0"]) - np.array(data_obs["ov0_rnd"])) / (
-        1 + 1e-9 - np.array(data_obs["ov0_rnd"])
+    dov0 = np.array(data_obs["ov0"]) - np.array(data_obs["mov0"])
+    ov0t = (np.array(data_obs["ov0"]) - np.array(data_obs["ov0_rnd"])) / (
+        1 - np.array(data_obs["ov0_rnd"])
     )
-    movt = (np.array(data_obs["mov0"]) - np.array(data_obs["mov0_rnd"])) / (
-        1 + 1e-9 - np.array(data_obs["mov0_rnd"])
+    mov0t = (np.array(data_obs["mov0"]) - np.array(data_obs["mov0_rnd"])) / (
+        1 - np.array(data_obs["mov0_rnd"])
     )
-    dovt = ovt - movt
+    dov0t = ov0t - mov0t
+    dovT = np.array(data_obs["ovT"]) - np.array(data_obs["movT"])
+    ovTt = (np.array(data_obs["ovT"]) + 1e-9 - np.array(data_obs["ovT_rnd"])) / (
+        1 + 1e-9 - np.array(data_obs["ovT_rnd"])
+    )
+    movTt = (np.array(data_obs["movT"]) + 1e-9 - np.array(data_obs["movT_rnd"])) / (
+        1 + 1e-9 - np.array(data_obs["movT_rnd"])
+    )
+    dovTt = ovTt - movTt
     dse = np.array(data_obs["se"]) - np.array(data_obs["mse"])
     Rse = (np.array(data_obs["se_rnd"]) - np.array(data_obs["se"])) / np.array(data_obs["se_rnd"])
     Rmse = (np.array(data_obs["mse_rnd"]) - np.array(data_obs["mse"])) / np.array(data_obs["mse_rnd"])
     dRse = Rse-Rmse
-    if print_it:
+    if print_it: #TO BE CHANGED!!!!
         dov_it = np.array(data_obs_it["ov0"]) - np.array(data_obs_it["mov0"])
         ovt_it = (np.array(data_obs_it["ov0"]) - np.array(data_obs_it["ov0_rnd"])) / (
             1 - np.array(data_obs_it["ov0_rnd"])
@@ -1073,12 +1093,20 @@ if __name__ == "__main__":
                     data_obs["init"][i],
                     data_obs["ov0"][i],
                     data_obs["mov0"][i],
-                    dov[i],
+                    dov0[i],
                     data_obs["ov0_rnd"][i],
                     data_obs["mov0_rnd"][i],
-                    ovt[i],
-                    movt[i],
-                    dovt[i],
+                    ov0t[i],
+                    mov0t[i],
+                    dov0t[i],
+                    data_obs["ovT"][i],
+                    data_obs["movT"][i],
+                    dovT[i],
+                    data_obs["ovT_rnd"][i],
+                    data_obs["movT_rnd"][i],
+                    ovTt[i],
+                    movTt[i],
+                    dovTt[i],
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
@@ -1096,7 +1124,7 @@ if __name__ == "__main__":
                 ]
                 for i, o in enumerate(data_obs["ov0"])
             ]
-            if print_it:
+            if print_it: #TO BE CHANGED!!!
                 data_list_it = [
                     [
                         data_obs_it["N"],
@@ -1142,12 +1170,20 @@ if __name__ == "__main__":
                     data_obs["init"][i],
                     data_obs["ov0"][i],
                     data_obs["mov0"][i],
-                    dov[i],
+                    dov0[i],
                     data_obs["ov0_rnd"][i],
                     data_obs["mov0_rnd"][i],
-                    ovt[i],
-                    movt[i],
-                    dovt[i],
+                    ov0t[i],
+                    mov0t[i],
+                    dov0t[i],
+                    data_obs["ovT"][i],
+                    data_obs["movT"][i],
+                    dovT[i],
+                    data_obs["ovT_rnd"][i],
+                    data_obs["movT_rnd"][i],
+                    ovTt[i],
+                    movTt[i],
+                    dovTt[i],
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
@@ -1212,12 +1248,20 @@ if __name__ == "__main__":
                     data_obs["init"][i],
                     data_obs["ov0"][i],
                     data_obs["mov0"][i],
-                    dov[i],
+                    dov0[i],
                     data_obs["ov0_rnd"][i],
                     data_obs["mov0_rnd"][i],
-                    ovt[i],
-                    movt[i],
-                    dovt[i],
+                    ov0t[i],
+                    mov0t[i],
+                    dov0t[i],
+                    data_obs["ovT"][i],
+                    data_obs["movT"][i],
+                    dovT[i],
+                    data_obs["ovT_rnd"][i],
+                    data_obs["movT_rnd"][i],
+                    ovTt[i],
+                    movTt[i],
+                    dovTt[i],
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
@@ -1281,12 +1325,20 @@ if __name__ == "__main__":
                     data_obs["init"][i],
                     data_obs["ov0"][i],
                     data_obs["mov0"][i],
-                    dov[i],
+                    dov0[i],
                     data_obs["ov0_rnd"][i],
                     data_obs["mov0_rnd"][i],
-                    ovt[i],
-                    movt[i],
-                    dovt[i],
+                    ov0t[i],
+                    mov0t[i],
+                    dov0t[i],
+                    data_obs["ovT"][i],
+                    data_obs["movT"][i],
+                    dovT[i],
+                    data_obs["ovT_rnd"][i],
+                    data_obs["movT_rnd"][i],
+                    ovTt[i],
+                    movTt[i],
+                    dovTt[i],
                     data_obs["e"][i],
                     data_obs["se"][i],
                     data_obs["mse"][i],
@@ -1339,14 +1391,22 @@ if __name__ == "__main__":
     s_N = r"$N$"
     s_d = r"$d$"
     s_l = r"$\lambda$"
-    ov = r"$O_{t=0}$"
-    mov = r"$MO_{t=0}$"
-    ov_rnd = r"$O_{t=0,RND}$"
-    mov_rnd = r"$MO_{t=0,RND}$"
-    dov = r"$\delta O$"
-    ovt = r"$\widetilde{O}_{t=0}$"
-    movt = r"$\widetilde{MO}_{t=0}$"
-    dovt = r"$\widetilde{\delta O}_{t=0}$"
+    ov0 = r"$O_{t=0}$"
+    mov0 = r"$MO_{t=0}$"
+    ov0_rnd = r"$O_{t=0,RND}$"
+    mov0_rnd = r"$MO_{t=0,RND}$"
+    dov0 = r"$\delta O_{t=0}$"
+    ov0t = r"$\widetilde{O}_{t=0}$"
+    mov0t = r"$\widetilde{MO}_{t=0}$"
+    dov0t = r"$\widetilde{\delta O}_{t=0}$"
+    ovT = r"$O_{t=T}$"
+    movT = r"$MO_{t=T}$"
+    ovT_rnd = r"$O_{t=T,RND}$"
+    movT_rnd = r"$MO_{t=T,RND}$"
+    dovT = r"$\delta O_{t=T}$"
+    ovTt = r"$\widetilde{O}_{t=T}$"
+    movTt = r"$\widetilde{MO}_{t=T}$"
+    dovTt = r"$\widetilde{\delta O}_{t=T}$"
     se_rnd = r"$SE_{RND}$"
     mse_rnd = r"$MSE_{RND}$"
     dse = r"$\delta SE$"
@@ -1371,14 +1431,22 @@ if __name__ == "__main__":
             s,
             o,
             "init",
-            ov,
-            mov,
-            dov,
-            ov_rnd,
-            mov_rnd,
-            ovt,
-            movt,
-            dovt,
+            ov0,
+            mov0,
+            dov0,
+            ov0_rnd,
+            mov0_rnd,
+            ov0t,
+            mov0t,
+            dov0t,
+            ovT,
+            movT,
+            dovT,
+            ovT_rnd,
+            movT_rnd,
+            ovTt,
+            movTt,
+            dovTt,
             "error",
             se,
             mse,
@@ -1403,14 +1471,22 @@ if __name__ == "__main__":
     data_frame["n_iter"] = data_frame["n_iter"].astype(int)
     #data_frame["pseed"] = data_frame["pseed"].astype(float)
     data_frame["init"] = data_frame["init"].astype(str)
-    data_frame[ov] = data_frame[ov].astype(float)
-    data_frame[mov] = data_frame[mov].astype(float)
-    data_frame[dov] = data_frame[dov].astype(float)
-    data_frame[ov_rnd] = data_frame[ov_rnd].astype(float)
-    data_frame[mov_rnd] = data_frame[mov_rnd].astype(float)
-    data_frame[ovt] = data_frame[ovt].astype(float)
-    data_frame[movt] = data_frame[movt].astype(float)
-    data_frame[dovt] = data_frame[dovt].astype(float)
+    data_frame[ov0] = data_frame[ov0].astype(float)
+    data_frame[mov0] = data_frame[mov0].astype(float)
+    data_frame[dov0] = data_frame[dov0].astype(float)
+    data_frame[ov0_rnd] = data_frame[ov0_rnd].astype(float)
+    data_frame[mov0_rnd] = data_frame[mov0_rnd].astype(float)
+    data_frame[ov0t] = data_frame[ov0t].astype(float)
+    data_frame[mov0t] = data_frame[mov0t].astype(float)
+    data_frame[dov0t] = data_frame[dov0t].astype(float)
+    data_frame[ovT] = data_frame[ovT].astype(float)
+    data_frame[movT] = data_frame[movT].astype(float)
+    data_frame[dovT] = data_frame[dovT].astype(float)
+    data_frame[ovT_rnd] = data_frame[ovT_rnd].astype(float)
+    data_frame[movT_rnd] = data_frame[movT_rnd].astype(float)
+    data_frame[ovTt] = data_frame[ovTt].astype(float)
+    data_frame[movTt] = data_frame[movTt].astype(float)
+    data_frame[dovTt] = data_frame[dovTt].astype(float)
     data_frame["error"] = data_frame["error"].astype(float)
     data_frame[se] = data_frame["SE"].astype(float)
     data_frame[mse] = data_frame["MSE"].astype(float)
@@ -1426,7 +1502,7 @@ if __name__ == "__main__":
     data_frame["sim"] = data_frame["sim"].astype(int)
     data_frame[fI] = data_frame[fI].astype(float)
 
-    if print_it:
+    if print_it: #TO BE CHANGED!!!!
         data_frame_it = pd.DataFrame(
             data_list_it,
             columns=[
