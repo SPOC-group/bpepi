@@ -5,7 +5,7 @@ from st import SparseTensor, compute_Lambdas, compute_Lambdas_dSIR
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
-    def __init__(self, N, T, contacts, obs, delta, mask, verbose=False):
+    def __init__(self, N, T, contacts, obs, delta, mask="SI", verbose=False):
         """Construction of the FactorGraph object, starting from contacts and observations
 
         Args:
@@ -31,8 +31,10 @@ class FactorGraph:
         if verbose:
             print("Lambdas matrices created")
 
-        compute_Lambdas_dSIR(self.Lambda0, self.Lambda1, contacts, mask)
-        #compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
+        if (mask=="SI"):
+            compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
+        else:
+            compute_Lambdas_dSIR(self.Lambda0, self.Lambda1, contacts, mask)
 
         if verbose:
             print("Lambdas matrices computed")
