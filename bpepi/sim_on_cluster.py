@@ -6,8 +6,8 @@ import numpy as np
 import networkx as nx
 import random
 
-from bpepi.fg import FactorGraph
-from bpepi.st import SparseTensor
+from fg import FactorGraph
+from st import SparseTensor
 import sys, os
 import time
 
