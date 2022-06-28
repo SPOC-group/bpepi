@@ -1578,8 +1578,8 @@ if __name__ == "__main__":
                 if print_it:
                     data_frame_it[s] = data_frame_it[s].astype(float)
                 file_name = (
-                    "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}_seed{}_".format(
-                        graph, N, d, S, lam, M, seed
+                    "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_rhoMax{:.3f}_Delta{}seed{}_".format(
+                        graph, N, d, S, lam, M, Delta, seed
                     )
                     + timestr
                     + ".xz"
@@ -1592,8 +1592,8 @@ if __name__ == "__main__":
                 if print_it:
                     data_frame_it[s] = data_frame_it[s].astype(int)
                 file_name = (
-                    "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}_seed{}_".format(
-                        graph, N, d, S, lam, M, seed
+                    "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_rhoMax{:.3f}_Delta{}_seed{}_".format(
+                        graph, N, d, S, lam, M, Delta, seed
                     )
                     + timestr
                     + ".xz"
@@ -1607,8 +1607,8 @@ if __name__ == "__main__":
                 if print_it:
                     data_frame_it[s] = data_frame_it[s].astype(float)
                 file_name = (
-                    "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}_seed{}_".format(
-                        graph, N, d, S, lam, M, seed
+                    "data_BPEpi_{}_N{}_d{}_deltaMax{:.4f}_lam{:.2f}_nobsMax{}_Delta{}_seed{}_".format(
+                        graph, N, d, S, lam, M, Delta, seed
                     )
                     + timestr
                     + ".xz"
@@ -1622,8 +1622,8 @@ if __name__ == "__main__":
                 if print_it:
                     data_frame_it[s] = data_frame_it[s].astype(int)
                 file_name = (
-                    "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}_seed{}_".format(
-                        graph, N, d, S, lam, M, seed
+                    "data_BPEpi_{}_N{}_d{}_nsMax{}_lam{:.2f}_nobsMax{}_Delta{}_seed{}_".format(
+                        graph, N, d, S, lam, M, Delta, seed
                     )
                     + timestr
                     + ".xz"
