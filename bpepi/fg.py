@@ -83,6 +83,16 @@ class FactorGraph:
             print("Copied lambdas matrices computed")
 
     def get_gamma(self, arr, reduce_idxs, repeat_deg):
+        """Function to compute ratios between gamma functions in iterate()
+
+        Args:
+            arr (array): initial array
+            reduce_idxs (array): list of indexes necessary in the function reduceat()
+            repeat_deg (array):list of degrees necessary in the function repeat()
+
+        Returns:
+            arr_5 (array): final array
+        """
         epsilon = 1e-20
         arr[arr == 0] = epsilon
         arr_2 = np.log(arr)
@@ -93,6 +103,11 @@ class FactorGraph:
         return arr_5
 
     def iterate(self):
+        """Single iteration of the Belief Propagation algorithm
+
+        Returns:
+            difference (float): Maximum difference between the messages at two consecutive iterations
+        """
         T = self.time
         old_msgs = np.copy(self.messages.values)
         msgs_tilde = old_msgs[self.inc_msgs]
@@ -165,10 +180,10 @@ class FactorGraph:
         """
         T = self.time
         N = self.size
-        old_msgs = SparseTensor(Tensor_to_copy=self.messages, Which=1)
+        old_msgs = np.copy(self.messages.values)
         for i in range(N):
             indices = [np.random.randint(0, N) for _ in range(c - 1)]
-            inc_msgs = np.array([old_msgs.values[idx] for idx in indices])
+            inc_msgs = np.array([old_msgs[idx] for idx in indices])
             inc_lambda0 = np.array([self.Lambda0.values[idx] for idx in indices])
             inc_lambda1 = np.array([self.Lambda1.values[idx] for idx in indices])
             gamma0_ki = np.reshape(
@@ -193,7 +208,7 @@ class FactorGraph:
             norm = self.messages.values[i].sum()  # normalize the messages
             self.messages.values[i] = self.messages.values[i] / norm
 
-        difference = np.abs(old_msgs.values - self.messages.values).max()
+        difference = np.abs(old_msgs - self.messages.values).max()
 
         return difference
 

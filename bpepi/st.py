@@ -5,7 +5,7 @@ import copy
 class SparseTensor:
     """Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor"""
 
-    def __init__(self, N=0, T=0, contacts=[], Tensor_to_copy=None, Which=None):
+    def __init__(self, N=0, T=0, contacts=[], Tensor_to_copy=None):
         """Construction of the tensor. If no tensor is given, then calls init(), otherwise calls init_like()
 
         Args:
@@ -17,10 +17,7 @@ class SparseTensor:
         if Tensor_to_copy is None:
             self.init(N, T, contacts)
         else:
-            if Which is None:
-                self.init_like(Tensor_to_copy)
-            else:
-                self.init_like2(Tensor_to_copy)
+            self.init_like(Tensor_to_copy)
 
     def init(self, N, T, contacts):
         """Initialization of the tensor, given the contacts
@@ -56,7 +53,7 @@ class SparseTensor:
         )
 
     def init_like(self, Tensor):
-        """Initialization of the tensor, given another tensor
+        """Initialization of the tensor, given another tensor, putting all values to one
 
         Args:
             Tensor (SparseTensor): The Sparse Tensor object we want to copy
@@ -69,26 +66,15 @@ class SparseTensor:
         self.degree = Tensor.degree
         self.values = np.full((self.num_direct_edges, self.T + 2, self.T + 2), 1.0)
 
-    def init_like2(self, Tensor):
-        """Initialization of the tensor, given another tensor
-
-        Args:
-            Tensor (SparseTensor): The Sparse Tensor object we want to copy
-        """
-        self.idx_list = Tensor.idx_list
-        self.adj_list = Tensor.adj_list
-        self.N = Tensor.N
-        self.T = Tensor.T
-        self.num_direct_edges = Tensor.num_direct_edges
-        self.degree = Tensor.degree
-        self.values = copy.deepcopy(Tensor.values)
-
     def get_idx_ij(self, i, j):
         """Returns index corresponding to the (i, j) entrance of the tensor
 
         Args:
             i (int): Index of the sending node
             j (int): Index of the receiving node
+
+        Returns:
+            idx (int): Index corresponding to the (i, j) entrance of the tensor
         """
         idx_i = self.adj_list[j].index(i)
         idx = self.idx_list[j][idx_i]
@@ -101,6 +87,9 @@ class SparseTensor:
         Args:
             i (int): Index of the sending node
             j (int): Index of the receiving node
+
+        Returns:
+            val_idx (float): Element of the array values corresponding to the (i, j) entrance of the tensor
         """
         idx_i = self.adj_list[j].index(i)
         idx = self.idx_list[j][idx_i]
@@ -112,10 +101,22 @@ class SparseTensor:
 
         Args:
             i (int): Index of the receiving node
+
+        Returns:
+            val_neigh (list): List of elements of the array values corresponding to the (*, i) entrances of the tensor
         """
         return self.values[self.idx_list[i]]
 
     def get_all_indices(self, i):
+        """Returns all the indices corresponding to the incoming and outgoing messages for a given node 
+
+        Args:
+            i (int): Index of the node
+
+        Returns:
+            incoming_indices (list): List of indices corresponding to the (*, i) entrances of the tensor
+            outgoing_indices (list): List of indices corresponding to the (i, *) entrances of the tensor
+        """
         incoming_indices = self.idx_list[i]
         outgoing_indices = []
         for j in self.adj_list[i]:
