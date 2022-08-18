@@ -1,13 +1,14 @@
 import numpy as np
 import random
-import networkx
+import networkx as nx
 
-def simulate_one_detSIR(G, p_inf = 0.01, mask = ["SI"]):
+def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"]):
     """Single iteration of the Population dynamics algorithm for a d-RRG
 
     Args:
         G (nx.graph): Graph representing the contact network
-        p_inf (float): probability of being infected at time 0 (fraction of sources)
+        s_type (string): either "delta" or "n_sources", indicates how to interpret the parameter S
+        S (int/float): number of infected/probability of being infected at time 0 (number/fraction of sources)
         mask (list): if it is equal to ["SI"], the function simulates an SI model, otherwise the i-th element of the
             list (between 0 and 1) represents the infectivity of the nodes at i timesteps after the infection
 
@@ -17,7 +18,6 @@ def simulate_one_detSIR(G, p_inf = 0.01, mask = ["SI"]):
     N=G.number_of_nodes()
     # Generate the sources
     status_nodes = []
-    s0 = []
     flag_s=0
     flag_m = 1
     if mask == ["SI"] : 
@@ -25,13 +25,23 @@ def simulate_one_detSIR(G, p_inf = 0.01, mask = ["SI"]):
         flag_m = 0
     counter = [mask.copy() for _ in range(N)]
     coeff_lam = np.ones(N)
-    for i in range(N):
-        if np.random.rand() < p_inf : 
-            s0.append(1)
+    if s_type == "delta":
+        s0 = []
+        for i in range(N):
+            if np.random.rand() < S : 
+                s0.append(1)
+                coeff_lam[i]=counter[i][0]
+                if flag_m : counter[i].pop(0)
+                flag_s =1
+            else : s0.append(0)        
+    else:
+        flag_s=1
+        s0=np.zeros(N)
+        source_list = random.sample(range(N), S)
+        s0[source_list]=1
+        for i in source_list:
             coeff_lam[i]=counter[i][0]
             if flag_m : counter[i].pop(0)
-            flag_s =1
-        else : s0.append(0)
 
     if (flag_s==0) : 
         s0[np.random.randint(0,N)]=1
@@ -79,57 +89,32 @@ def generate_contacts(G, T, lambda_, p_edge=1):
                 contacts.append((e[1], e[0], t, lambda_))
     return contacts
 
-
-def generate_M_obs(conf, M=0):
-    """Function to generate M observations, given an epidemic simulation
-
-    Args:
-        conf (array): array of shape (T+1) x N contaning the states of all the nodes from time 0 to time T
-        M (int): Number of observations. Defaults to 0.
-
-    Returns:
-        obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
-        fI (float): always 1
-    """
-    obs_sim = []
-    N = len(conf[0])
-    T = len(conf)
-    obs_list = random.sample(range(N), M)
-    for i in obs_list:
-        t_inf = np.nonzero(conf[:, i] == 1)[0]
-        if len(t_inf) == 0:
-            obs_temp = (i, 0, T - 1)
-            obs_sim.append(obs_temp)
-        else:
-            obs_temp = (i, 1, t_inf[0])
-            obs_sim.append((obs_temp))
-            if t_inf[0] > 0:
-                obs_temp = (i, 0, t_inf[0] - 1)
-                obs_sim.append((obs_temp))
-    obs_sim = sorted(obs_sim, key=lambda tup: tup[2])
-    fI = 1
-    return obs_sim, fI
-
-
-def generate_snapshot_obs(conf, frac_obs=0.0):
+def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
     """Function to generate a snapshot observation, given an epidemic simulation
 
     Args:
         conf (array): array of shape (T+1) x N contaning the states of all the nodes from time 0 to time T
-        frac_obs (float): fraction of nodes to observe. Defaults to 0.
+        o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
+        M (int/float): number of observed nodes/probability of being randomly observed 
 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
+        fS (float): fraction of susceptible nodes when taking the tests
         fI (float): fraction of infected nodes when taking the tests
         tS (int): random time at which the tests were taken
     """
     obs_sim = []
     N = len(conf[0])
     T = len(conf)
-    tS = random.choice(range(T))
-    fI = conf[tS].mean()
-    obs_sim = [ (i, conf[tS,i], tS) for i in range(N) if np.random.random() < frac_obs]
-    return obs_sim, fI, tS
+    if snap_time == -1: snap_time = random.choice(range(T))
+    fS = np.count_nonzero(conf[snap_time] == 0)
+    fI = np.count_nonzero(conf[snap_time] == 1)
+    if o_type == "rho":
+        obs_sim = [ (i, conf[snap_time,i], snap_time) for i in range(N) if np.random.random() < M]
+    else: 
+        obs_list = random.sample(range(N), M)
+        obs_sim = [ (i, conf[snap_time,i], snap_time) for i in range(N) if i in obs_list]
+    return obs_sim, fS, fI, snap_time
 
 # TO BE WRITTEN
 #def generate_snapshot_obs_dSIR(conf, frac_obs=0.0):
@@ -154,12 +139,13 @@ def generate_snapshot_obs(conf, frac_obs=0.0):
 #    return obs_sim, fI, tS
 #
 
-def generate_obs(conf, frac_obs=0.0):
+def generate_obs(conf, o_type="rho", M=0.0):
     """Function to generate a list of observations of a certain fraction of nodes, given an epidemic simulation
 
     Args:
         conf ([type]): [description]
-        frac_obs (float): fraction of nodes to observe. Defaults to 0.
+        o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
+        M (int/float): number of observed nodes/probability of being randomly observed 
 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
@@ -168,8 +154,10 @@ def generate_obs(conf, frac_obs=0.0):
     obs_sim = []
     N = conf.shape[1]
     T = conf.shape[0]
+    if o_type == "n_obs":
+        obs_list = random.sample(range(N), M)
     for i in range(N):
-        if np.random.random() < frac_obs:
+        if ((o_type == "rho") and (np.random.random() < M)) or ((o_type == "n_obs") and (i in obs_list)):
             t_inf = np.nonzero(conf[:, i] == 1)[0]
             if len(t_inf) == 0:
                 obs_temp = (i, 0, T - 1)
@@ -181,5 +169,4 @@ def generate_obs(conf, frac_obs=0.0):
                     obs_temp = (i, 0, t_inf[0] - 1)
                     obs_sim.append((obs_temp))
     obs_sim = sorted(obs_sim, key=lambda tup: tup[2])
-    fI = 1
-    return obs_sim, fI
+    return obs_sim

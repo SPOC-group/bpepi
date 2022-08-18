@@ -1,11 +1,11 @@
 import numpy as np
-from st import SparseTensor, compute_Lambdas, compute_Lambdas_dSIR
+from bpepi.Modules.st import *
 
 
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
-    def __init__(self, N, T, contacts, obs, delta, mask="SI", verbose=False):
+    def __init__(self, N, T, contacts, obs, delta, mask=["SI"], verbose=False):
         """Construction of the FactorGraph object, starting from contacts and observations
 
         Args:
@@ -31,7 +31,7 @@ class FactorGraph:
         if verbose:
             print("Lambdas matrices created")
 
-        if (mask=="SI"):
+        if (mask==["SI"]):
             compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
         else:
             compute_Lambdas_dSIR(self.Lambda0, self.Lambda1, contacts, mask)
