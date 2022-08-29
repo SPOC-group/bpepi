@@ -38,25 +38,39 @@ def BPloop(
     tol2 = 1e-2
     it_max = 10000
     if print_it:
-        marg_list=[]
-        marg_list.append(f.marginals())
-    for it in range(n_iter):
+        marg_list=[f.marginals()]
+        it_list=[0]
+        e_list=[e]
+        logL_list = [f.loglikelihood()]
+    for it in np.arange(1,n_iter+1):
         e = f.iterate()
         if print_it and (
-            ((it + 1) % iter_space == 0) or (e < tol) or ((it + 1) == n_iter)
+            (it % iter_space == 0) or (e < tol) or (it == n_iter)
         ):
             marg_list.append(f.marginals())
+            it_list.append(it)
+            e_list.append(e)
+            logL_list.append(f.loglikelihood())
         if e < tol:
             break
     while (e > tol) and (e < tol2):
         it = it + 1
         e = f.iterate()
-        if print_it and (((it + 1) % iter_space == 0) or (e < tol) or ((it + 1) == it_max)):
+        if print_it and ((it % iter_space == 0) or (e < tol) or (it == it_max)):
             marg_list.append(f.marginals())
+            it_list.append(it)
+            e_list.append(e)
+            logL_list.append(f.loglikelihood())
         if it == it_max:
             break
-    if not print_it : marg_list = [f.marginals()]
-    return marg_list
+    
+    if not print_it : 
+        marg_list = [f.marginals()]
+        it_list = [it]
+        e_list = [e]
+        logL_list = [f.loglikelihood()]
+
+    return marg_list, e_list, it_list, logL_list
 
 def main():
     parser = argparse.ArgumentParser(description="Compute marginals using BPEpI")
@@ -250,12 +264,20 @@ def main():
     T_max=args.T_max
     if args.Delta is not None:
         mask=[1]*args.Delta
+        Delta = args.Delta
+        mask_type = "dSIR_one"
     elif args.mu is not None:
         mask = [1 -args.mu*sum([(1-args.mu)**j for j in range(i-1)]) for i in np.arange(1,T_max)]
+        Delta = T_max + 1
+        mask_type = "dSIR_exp"
     elif args.mask is not None:
         mask = args.mask
+        Delta = len(mask)
+        mask_type = "dSIR_custom"
     else:
         mask = ["SI"]
+        Delta = T_max + 1
+        mask_type = "SI"
     tol2 = args.tol2
     it_max = args.it_max
 
@@ -273,18 +295,21 @@ def main():
                             G = generate_graph(N=N, d=d)
                             for (u,v) in G.edges():
                                 G.edges[u,v]['lambda'] = lam
-                            status_nodes = simulate_one_detSIR(G, s_type=s_type, S = S, mask = mask)
-                            T = len(status_nodes) - 1
+                            ground_truth = simulate_one_detSIR(G, s_type=s_type, S = S, mask = mask)
+                            if len(ground_truth) > T_max : 
+                                warnings.warn("The simulation exeeds the maximum time limit!")
+                                sys.exit()
+                            T = len(ground_truth) - 1
                             contacts = generate_contacts(G, T, lam)
                             if args.obs_type == "sensors":
-                                list_obs = generate_obs(status_nodes, o_type=o_type, M=M)
-                                list_obs_all = generate_obs(status_nodes, o_type="rho", M=1)
-                                fS = np.mean(status_nodes[-1]==0)
-                                fI = np.mean(status_nodes[-1]==1)
+                                list_obs = generate_obs(ground_truth, o_type=o_type, M=M)
+                                list_obs_all = generate_obs(ground_truth, o_type="rho", M=1)
+                                fS = np.mean(ground_truth[-1]==0)
+                                fI = np.mean(ground_truth[-1]==1)
                                 TO=T
                             else:
-                                list_obs, fS, fI, TO = generate_snapshot_obs(status_nodes, o_type=o_type, M=M, snap_time=args.snap_time)
-                                list_obs_all = generate_obs(status_nodes, o_type="rho", M=1)
+                                list_obs, fS, fI, TO = generate_snapshot_obs(ground_truth, o_type=o_type, M=M, snap_time=args.snap_time)
+                                list_obs_all = generate_obs(ground_truth, o_type="rho", M=1)
 
                             f_rnd = FactorGraph(
                                 N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask
@@ -292,7 +317,7 @@ def main():
                             f_informed = FactorGraph(
                                 N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask
                             )
-                            marg_list_rnd = BPloop(
+                            marg_list_rnd, eR_list, itR_list, logLR_list = BPloop(
                                 f_rnd,
                                 list_obs,
                                 n_iter,
@@ -302,7 +327,7 @@ def main():
                                 tol2,
                                 it_max
                             )
-                            marg_list_inf = BPloop(
+                            marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
                                 f_informed,
                                 list_obs,
                                 n_iter,
@@ -337,9 +362,10 @@ def main():
                                 args.snap_time,
                                 T_max,
                                 mask,
+                                mask_type,
                                 tol2,
                                 it_max,
-                                status_nodes,
+                                ground_truth,
                                 marg_list_rnd, 
                                 marg_list_inf,
                                 G,
@@ -347,7 +373,14 @@ def main():
                                 list_obs,
                                 fS,
                                 fI,
-                                TO
+                                TO,
+                                Delta,
+                                eR_list,
+                                eI_list,
+                                itR_list,
+                                itI_list,
+                                logLR_list,
+                                logLI_list
                             )
 
                             with lzma.open(save_dir + file_name, "wb") as f:
