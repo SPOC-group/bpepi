@@ -1,2 +1,2 @@
-# bpepi
-Belief Propagation EPidemic Inference [bpepi]
+# Bayes-optimal inference on graphical compartmental models using Belief Propagation
+
