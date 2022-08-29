@@ -136,10 +136,10 @@ def main():
                                 mse = MSE(B, ti_inf)
                                 se_rnd = SE(ti_str, ti_rnd)
                                 mse_rnd = MSE(B, ti_rnd)
-                                e = np.Nan#e_tab[i][it_idx]
-                                it = np.Nan#it_tab[i][it_idx]
-                                it_final = np.Nan#it_tab[i][-1]
-                                logL = np.Nan#logL_tab[i][it_idx]
+                                e = np.NaN#e_tab[i][it_idx]
+                                it = np.NaN#it_tab[i][it_idx]
+                                it_final = np.NaN#it_tab[i][-1]
+                                logL = np.NaN#logL_tab[i][it_idx]
                                 ov0t = (ov0 - ov0_rnd) / (1 - ov0_rnd)
                                 mov0t = (mov0 - mov0_rnd) / (1 - mov0_rnd)
                                 ovTt = (ovT - ovT_rnd) / (1 + 1e-12 - ovT_rnd)
