@@ -268,5 +268,5 @@ def data_to_dict(data):
                 Rmse,
                 Rse - Rmse
             ]
-            single_dict_list.append(data_dict = dict(zip(keys, values)))
+            single_dict_list.append(dict(zip(keys, values)))
     return single_dict_list
