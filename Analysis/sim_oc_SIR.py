@@ -408,7 +408,7 @@ def main():
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
     if print_it : file_name = "DF_IT_" + timestr + ".xz"  
     else : file_name = "DF_" + timestr + ".xz" 
-    with lzma.open(save_dir + file_name, "wb") as f:
+    with lzma.open(save_DF_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
 
 if __name__ == "__main__":
