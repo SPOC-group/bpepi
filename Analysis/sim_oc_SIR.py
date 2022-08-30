@@ -80,7 +80,13 @@ def main():
         "--save_dir",
         type=str,
         default="../data/check/",
-        help="saving directory",
+        help="saving directory for data",
+    )
+    parser.add_argument(
+        "--save_DF_dir",
+        type=str,
+        default="../data/check/",
+        help="saving directory for data frames",
     )
     parser.add_argument(
         "--file_name",

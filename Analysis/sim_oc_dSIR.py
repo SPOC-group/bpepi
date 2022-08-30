@@ -2,10 +2,12 @@
 import numpy as np
 import networkx as nx
 import random
+import pandas as pd
 
 from gen import *
 from bpepi.Modules.st import *
 from bpepi.Modules.fg import *
+from XZtoDF import data_to_dict
 
 import sys
 import time
@@ -78,7 +80,13 @@ def main():
         "--save_dir",
         type=str,
         default="../data/check/",
-        help="saving directory",
+        help="saving directory for data",
+    )
+    parser.add_argument(
+        "--save_DF_dir",
+        type=str,
+        default="../data/check/",
+        help="saving directory for data frames",
     )
     parser.add_argument(
         "--file_name",
@@ -217,6 +225,11 @@ def main():
     parser.add_argument(
         "--it_max", type=int, default=10000, help="Max number of iterations of the algorithm, after the first threshold "
     )
+    parser.add_argument(
+        "--save_marginals",
+        action="store_true",
+        help="If false, save just the Data Frame. If true, save also the marginals found by BP",
+    )
 
     args = parser.parse_args()
     print("arguments:")
@@ -226,6 +239,7 @@ def main():
         warnings.warn("YOU CANNOT HAVE ZERO SOURCES!")
         sys.exit()
     save_dir = args.save_dir
+    save_DF_dir = args.save_DF_dir
     path_save = Path(save_dir)
     if not path_save.exists():
         warnings.warn("SAVING FOLDER DOES NOT EXIST")
@@ -280,7 +294,9 @@ def main():
         mask_type = "SI"
     tol2 = args.tol2
     it_max = args.it_max
+    save_marginals = args.save_marginals
 
+    dict_list = []
     t1 = time.time()
     t2 = time.time()
     for i_N, N in enumerate(N_table):
@@ -382,9 +398,16 @@ def main():
                                 logLR_list,
                                 logLI_list
                             )
-
-                            with lzma.open(save_dir + file_name, "wb") as f:
-                                pickle.dump(saveObj, f)
+                            if save_marginals :
+                                with lzma.open(save_dir + file_name, "wb") as f:
+                                    pickle.dump(saveObj, f)
+                            dict_list = dict_list + data_to_dict(saveObj)
+    data_frame = pd.DataFrame(dict_list)
+    timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
+    if print_it : file_name = "DF_IT_" + timestr + ".xz"  
+    else : file_name = "DF_" + timestr + ".xz" 
+    with lzma.open(save_dir + file_name, "wb") as f:
+        pickle.dump(data_frame, f)
 
 if __name__ == "__main__":
     main()
