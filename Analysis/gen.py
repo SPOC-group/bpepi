@@ -1,9 +1,11 @@
 import numpy as np
 import random
 import networkx as nx
+import ndlib.models.epidemics as ep
+import ndlib.models.ModelConfig as mc
 
 def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"]):
-    """Single iteration of the Population dynamics algorithm for a d-RRG
+    """Function to simulate an epidemic using the deterministic-SIR model
 
     Args:
         G (nx.graph): Graph representing the contact network
@@ -170,3 +172,39 @@ def generate_obs(conf, o_type="rho", M=0.0):
                     obs_sim.append((obs_temp))
     obs_sim = sorted(obs_sim, key=lambda tup: tup[2])
     return obs_sim
+
+def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu=0.):
+    """Function to simulate an epidemic using the SIR model
+
+    Args:
+        G (nx.graph): Graph representing the contact network
+        s_type (string): either "delta" or "n_sources", indicates how to interpret the parameter S
+        S (int/float): number of infected/probability of being infected at time 0 (number/fraction of sources)
+     
+    Returns:
+        status_nodes (list): array of shape (T+1) x N containing the state of all the nodes from time 0 to time T
+    """
+    N = G.number_of_nodes()
+    for j in nx.neighbors(G,0):
+        lamb = G.edges[j,0]['lambda']
+    model = ep.SIRModel(G)
+    cfg = mc.Configuration()
+    cfg.add_model_parameter("beta", lamb)  # infection rate
+    cfg.add_model_parameter('gamma', mu) # recovery rate
+    infected_nodes = []
+    for i in range(N) :
+        if np.random.rand() < S : 
+            infected_nodes.append(i)
+    cfg.add_model_initial_configuration("Infected", infected_nodes)
+    model.set_initial_status(cfg)
+    status_nodes = []
+    status_nodes_t = np.zeros(N, dtype=int)
+    t = 0
+    while sum(status_nodes_t) < N:
+        iteration = model.iteration(node_status=True)
+        for node_i in iteration["status"].keys():
+            status_nodes_t[node_i] = iteration["status"][node_i]
+        status_nodes.append(status_nodes_t.copy())
+        t = t + 1
+
+    return np.array(status_nodes)
