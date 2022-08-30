@@ -40,16 +40,17 @@ def main():
     save_dir = args.save_dir
     print_it = args.print_it
 
+    flag = 0
     if args.init_DF == True:
-        data_frame = None
         for filename in os.listdir(load_dir):
             path = os.path.join(load_dir, filename)
             if not os.path.isdir(path):
                 if ( (print_it == True) and (filename.startswith( "DF_IT_" ))) or ( (print_it == False) and (filename.startswith( "DF_" )) and not (filename.startswith( "DF_IT_" )) ):
                     with lzma.open(load_dir + filename, "rb") as f:
-                        if data_frame == None : data_frame = pickle.load(f)
+                        if flag == 0 : 
+                            data_frame = pickle.load(f)
+                            flag = 1
                         else: data_frame = pd.concat([data_frame,pickle.load(f)],ignore_index=True)
-    else: data_frame = None
 
     dict_list = []
     for filename in os.listdir(load_dir):
@@ -61,7 +62,7 @@ def main():
                         data = pickle.load(f)
                         dict_list = dict_list + data_to_dict(data)
                                     
-    if data_frame is None: data_frame = pd.DataFrame(dict_list)
+    if flag == 0: data_frame = pd.DataFrame(dict_list)
     else : data_frame = pd.concat([data_frame,pd.DataFrame(dict_list)],ignore_index=True)
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
     if print_it : file_name = "DF_IT_" + timestr + ".xz"  
