@@ -94,7 +94,7 @@ def OV_rnd(conf, Mt):
     Returns:
         mov_rnd (float): RND-overlap
     """
-    x = np.argmax(np.mean(Mt))
+    x = np.argmax(np.mean(Mt, axis=1))
     ov_rnd = np.mean(conf == x)
     return ov_rnd
 
