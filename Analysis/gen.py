@@ -151,7 +151,6 @@ def generate_obs(conf, o_type="rho", M=0.0):
 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
-        fI (float): always 1
     """
     obs_sim = []
     N = conf.shape[1]
@@ -200,7 +199,7 @@ def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu=0.):
     status_nodes = []
     status_nodes_t = np.zeros(N, dtype=int)
     t = 0
-    while sum(status_nodes_t) < N:
+    while sum(status_nodes_t == 1) > 1:
         iteration = model.iteration(node_status=True)
         for node_i in iteration["status"].keys():
             status_nodes_t[node_i] = iteration["status"][node_i]
@@ -208,3 +207,43 @@ def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu=0.):
         t = t + 1
 
     return np.array(status_nodes)
+
+def generate_obs_SIR(conf, o_type="rho", M=0.0):
+    """Function to generate a list of observations of a certain fraction of nodes, given an epidemic simulation
+
+    Args:
+        conf ([type]): [description]
+        o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
+        M (int/float): number of observed nodes/probability of being randomly observed 
+
+    Returns:
+        obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
+    """
+    obs_sim = []
+    N = conf.shape[1]
+    T = conf.shape[0]
+    if o_type == "n_obs":
+        obs_list = random.sample(range(N), M)
+    for i in range(N):
+        if ((o_type == "rho") and (np.random.random() < M)) or ((o_type == "n_obs") and (i in obs_list)):
+            t_inf = np.nonzero(conf[:, i] == 1)[0]
+            t_rec = np.nonzero(conf[:, i] == 2)[0]
+            if len(t_inf) == 0:
+                obs_temp = (i, 0, T - 1)
+                obs_sim.append(obs_temp)
+            else:
+                obs_temp = (i, 1, t_inf[0])
+                obs_sim.append((obs_temp))
+                if t_inf[0] > 0:
+                    obs_temp = (i, 0, t_inf[0] - 1)
+                    obs_sim.append((obs_temp))
+                if len(t_rec) == 0:
+                    obs_temp = (i, 1, T - 1)
+                    obs_sim.append(obs_temp)
+                else:
+                    obs_temp = (i, 2, t_rec[0])
+                    obs_sim.append((obs_temp))
+                    obs_temp = (i, 1, t_rec[0] - 1)
+                    obs_sim.append((obs_temp))
+    obs_sim = sorted(obs_sim, key=lambda tup: tup[2])
+    return obs_sim

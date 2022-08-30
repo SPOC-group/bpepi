@@ -196,16 +196,14 @@ def main():
     group_d.add_argument(
         "--Delta",
         type=int,
-        default=10,
+        default=-1,
         help="Lenght of mask array, filled with ones",
-        nargs="+",
     )
     group_d.add_argument(
         "--mu",
         type=float,
-        default=1,
+        default=-1,
         help="Value of recovery probability of the SIR model to simulate through dSIR",
-        nargs="+",
     )
     group_d.add_argument(
         "--mask",
@@ -276,22 +274,22 @@ def main():
     tol = args.tol
     n_iter = args.n_iter
     T_max=args.T_max
-    if args.Delta is not None:
-        mask=[1]*args.Delta
-        Delta = args.Delta
-        mask_type = "dSIR_one"
-    elif args.mu is not None:
-        mask = [1 -args.mu*sum([(1-args.mu)**j for j in range(i-1)]) for i in np.arange(1,T_max)]
-        Delta = T_max + 1
-        mask_type = "dSIR_exp"
-    elif args.mask is not None:
-        mask = args.mask
-        Delta = len(mask)
-        mask_type = "dSIR_custom"
-    else:
+    if args.SI == True:
         mask = ["SI"]
         Delta = T_max + 1
         mask_type = "SI"
+    elif args.Delta != -1:
+        mask=[1]*args.Delta
+        Delta = args.Delta
+        mask_type = "dSIR_one"
+    elif args.mu != -1:
+        mask = [1 -args.mu*sum([(1-args.mu)**j for j in range(i-1)]) for i in np.arange(1,T_max)]
+        Delta = T_max + 1
+        mask_type = "dSIR_exp"
+    else:
+        mask = args.mask
+        Delta = len(mask)
+        mask_type = "dSIR_custom"
     tol2 = args.tol2
     it_max = args.it_max
     save_marginals = args.save_marginals
