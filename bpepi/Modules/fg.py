@@ -45,7 +45,8 @@ class FactorGraph:
                 self.observations[o[0]][o[2] + 1 :] = 0
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
-
+            if o[1] == 2 and mask != ["SI"]:
+                pass #Can we use recovered obs??
         if verbose:
             print("Observations array created")
 
