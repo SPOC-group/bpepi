@@ -228,6 +228,11 @@ def main():
         action="store_true",
         help="If false, save just the Data Frame. If true, save also the marginals found by BP",
     )
+    parser.add_argument(
+        "--SIR_sim",
+        action="store_true",
+        help="If true, simulates a conventional SIR model",
+    )
 
     args = parser.parse_args()
     print("arguments:")
@@ -274,6 +279,7 @@ def main():
     tol = args.tol
     n_iter = args.n_iter
     T_max=args.T_max
+    mu=0
     if args.SI == True:
         mask = ["SI"]
         Delta = T_max + 1
@@ -283,7 +289,8 @@ def main():
         Delta = args.Delta
         mask_type = "dSIR_one"
     elif args.mu != -1:
-        mask = [1 -args.mu*sum([(1-args.mu)**j for j in range(i-1)]) for i in np.arange(1,T_max)]
+        mu = args.mu
+        mask = [(1-mu)**i for i in range(0,T_max+1)]
         Delta = T_max + 1
         mask_type = "dSIR_exp"
     else:
@@ -293,6 +300,7 @@ def main():
     tol2 = args.tol2
     it_max = args.it_max
     save_marginals = args.save_marginals
+    SIR_sim = args.SIR_sim
 
     dict_list = []
     t1 = time.time()
@@ -309,21 +317,22 @@ def main():
                             G = generate_graph(N=N, d=d)
                             for (u,v) in G.edges():
                                 G.edges[u,v]['lambda'] = lam
-                            ground_truth = simulate_one_detSIR(G, s_type=s_type, S = S, mask = mask)
+                            if SIR_sim == True: simulate_one_SIR(G, s_type=s_type, S = S, mu=mu, T_max=T_max)
+                            else: ground_truth = simulate_one_detSIR(G, s_type=s_type, S = S, mask = mask, T_max=T_max)
                             if len(ground_truth) > T_max : 
                                 warnings.warn("The simulation exeeds the maximum time limit!")
                                 sys.exit()
                             T = len(ground_truth) - 1
                             contacts = generate_contacts(G, T, lam)
                             if args.obs_type == "sensors":
-                                list_obs = generate_obs(ground_truth, o_type=o_type, M=M)
-                                list_obs_all = generate_obs(ground_truth, o_type="rho", M=1)
+                                list_obs = generate_sensors_obs(ground_truth, o_type=o_type, M=M)
+                                list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
                                 fS = np.mean(ground_truth[-1]==0)
                                 fI = np.mean(ground_truth[-1]==1)
                                 TO=T
                             else:
                                 list_obs, fS, fI, TO = generate_snapshot_obs(ground_truth, o_type=o_type, M=M, snap_time=args.snap_time)
-                                list_obs_all = generate_obs(ground_truth, o_type="rho", M=1)
+                                list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
 
                             f_rnd = FactorGraph(
                                 N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask

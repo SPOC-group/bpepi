@@ -230,6 +230,11 @@ def main():
         action="store_true",
         help="If false, save just the Data Frame. If true, save also the marginals found by BP",
     )
+    parser.add_argument(
+        "--SIR_sim",
+        action="store_true",
+        help="If true, simulates a conventional SIR model",
+    )
 
     args = parser.parse_args()
     print("arguments:")
@@ -286,7 +291,8 @@ def main():
         Delta = args.Delta
         mask_type = "dSIR_one"
     elif args.mu != -1:
-        mask = [1 -args.mu*sum([(1-args.mu)**j for j in range(i-1)]) for i in np.arange(1,T_max)]
+        mu = args.mu
+        mask = [(1-mu)**i for i in range(0,T_max+1)]
         Delta = T_max + 1
         mask_type = "dSIR_exp"
     else:
@@ -296,6 +302,7 @@ def main():
     tol2 = args.tol2
     it_max = args.it_max
     save_marginals = args.save_marginals
+    SIR_sim = args.SIR_sim
 
     dict_list = []
     t1 = time.time()
@@ -320,8 +327,8 @@ def main():
                             T = len(ground_truth) - 1
                             contacts = generate_contacts(G, T, lam)
                             if args.obs_type == "sensors":
-                                list_obs = generate_obs(ground_truth, o_type=o_type, M=M)
-                                list_obs_all = generate_obs(ground_truth, o_type="rho", M=1)
+                                list_obs = generate_obs_SIR(ground_truth, o_type=o_type, M=M)
+                                list_obs_all = generate_obs_SIR(ground_truth, o_type="rho", M=1)
                                 fS = np.mean(ground_truth[-1]==0)
                                 fI = np.mean(ground_truth[-1]==1)
                                 TO=T
