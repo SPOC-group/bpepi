@@ -388,6 +388,7 @@ def main():
                                 T_max,
                                 mask,
                                 mask_type,
+                                mu,
                                 tol2,
                                 it_max,
                                 ground_truth,

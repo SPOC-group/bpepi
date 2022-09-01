@@ -92,6 +92,7 @@ def data_to_dict(data):
     T_max,
     mask,
     mask_type,
+    mu,
     tol2,
     it_max,
     ground_truth,
@@ -180,6 +181,7 @@ def data_to_dict(data):
                 r"snap_time",
                 r"T_max",
                 r"mask_type",
+                r"$\mu$"
                 r"tol2",
                 r"it_max",
                 r"$T$",
@@ -234,6 +236,7 @@ def data_to_dict(data):
                 snap_time,
                 T_max,
                 mask_type,
+                mu,
                 tol2,
                 it_max,
                 T,
