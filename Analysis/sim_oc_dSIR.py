@@ -290,7 +290,7 @@ def main():
         mask_type = "dSIR_one"
     elif args.mu != -1:
         mu = args.mu
-        mask = [(1-mu)**i for i in range(0,T_max+1)]
+        mask = [(1-mu)**i for i in range(T_max+1)]
         Delta = T_max + 1
         mask_type = "dSIR_exp"
     else:
@@ -317,7 +317,9 @@ def main():
                             G = generate_graph(N=N, d=d)
                             for (u,v) in G.edges():
                                 G.edges[u,v]['lambda'] = lam
-                            if SIR_sim == True: simulate_one_SIR(G, s_type=s_type, S = S, mu=mu, T_max=T_max)
+                            if SIR_sim == True: 
+                                mask_type = "SIR"
+                                ground_truth = simulate_one_SIR(G, s_type=s_type, S = S, mu=mu, T_max=T_max)
                             else: ground_truth = simulate_one_detSIR(G, s_type=s_type, S = S, mask = mask, T_max=T_max)
                             if len(ground_truth) > T_max : 
                                 warnings.warn("The simulation exeeds the maximum time limit!")
@@ -335,10 +337,10 @@ def main():
                                 list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
 
                             f_rnd = FactorGraph(
-                                N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask
+                                N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
                             )
                             f_informed = FactorGraph(
-                                N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask
+                                N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
                             )
                             marg_list_rnd, eR_list, itR_list, logLR_list = BPloop(
                                 f_rnd,

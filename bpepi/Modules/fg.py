@@ -5,7 +5,7 @@ from bpepi.Modules.st import *
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
-    def __init__(self, N, T, contacts, obs, delta, mask=["SI"], verbose=False):
+    def __init__(self, N, T, contacts, obs, delta, mask=["SI"], mask_type="SI", verbose=False):
         """Construction of the FactorGraph object, starting from contacts and observations
 
         Args:
@@ -13,6 +13,11 @@ class FactorGraph:
             T (int): Time at which the simulation stops
             contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
             obs (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
+            delta (float): Probability for an individual to be a source
+            mask (list): if it is equal to ["SI"], the function simulates an SI model, otherwise the i-th element of the
+                list (between 0 and 1) represents the infectivity of the nodes at i timesteps after the infection
+            mask_type (string): Type of inference model. If equal to "SIR", it means we are simulating a SIR model 
+                and inferring using the dSIR model
         """
         self.messages = SparseTensor(N, T, contacts)
         if verbose:
@@ -48,14 +53,21 @@ class FactorGraph:
                 self.observations[i_o][: t_o + 1] = 0
             if s_o == 1:
                 if mask == ["SI"]: self.observations[i_o][t_o + 1 :] = 0
-                else:
+                elif mask_type == "SIR":
                     obs_mask = np.array([mask[t_o-t-1] if ((t < t_o) and (t_o-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
                     self.observations[i_o] = self.observations[i_o]*obs_mask
-            if s_o == 2:
-                if mask == ["SI"]: self.observations[i_o][t_o + 1 :] = 0 #Do as if it was I. Is this the best we can do?
                 else:
-                    obs_mask = np.array([1 - mask[t_o-t-2] if ((t < t_o - 1) and (t_o-1-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
+                    obs_mask = np.array([1 if ((t < t_o) and (t_o-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
                     self.observations[i_o] = self.observations[i_o]*obs_mask
+            if s_o == 2:
+                if mask == ["SI"]: self.observations[i_o][t_o + 1 :] = 0 #Do as if it were I. Is this the best we can do?
+                elif mask_type == "SIR":
+                    obs_mask = np.array([1 - mask[t_o-t-1] if ((t < t_o) and (t_o-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
+                    self.observations[i_o] = self.observations[i_o]*obs_mask
+                else:
+                    obs_mask = np.array([1 if  (t_o-t > len(mask)) else 0 for t in np.arange(-1,T+1)])
+                    self.observations[i_o] = self.observations[i_o]*obs_mask
+
         if verbose:
             print("Observations array created")
 

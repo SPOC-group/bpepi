@@ -125,10 +125,11 @@ def data_to_dict(data):
             M0 = np.array([ MS0, MI0, MR0])
             #Compute general marginals:
             pS = 1 - np.cumsum(B,axis=1)
-            pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T+2)]) for b in B])
+            if mask == ["SI"] : pI = np.cumsum(B,axis=1)
+            elif mask_type == "SIR" : pI = np.array([ np.array([ sum(np.array([ mask[t-ti-1] if ((t>ti) and (t-ti <= len(mask))) else 0 for ti in np.arange(-1,T+1) ]) * b ) for t in range(T+2)]) for b in B])
+            else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T+2)]) for b in B])
             pR = 1 - pS - pI
-            #Take last time
-            ###Ms0 = np.cumsum(Bs,axis=1)[:,T]
+            #Take time T
             MST = pS[:,T]
             MIT = pI[:,T]
             MRT = pR[:,T]

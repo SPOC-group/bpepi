@@ -21,9 +21,11 @@ def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100)
     status_nodes = []
     flag_s=0
     flag_m = 1
+    flag_sir = 0
     if mask == ["SI"] : 
         mask = [1]
         flag_m = 0
+    if len(mask) == T_max+1 : flag_sir = 1
     counter = [mask.copy() for _ in range(N)]
     coeff_lam = np.ones(N)
     if s_type == "delta":
@@ -50,7 +52,7 @@ def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100)
     status_nodes.append(np.array(s0))
     # Generate the epidemics
     st = np.copy(s0)
-    while ((flag_m==1 and 1 in status_nodes[-1]) or (flag_m==0 and 0 in status_nodes[-1])) and (len(status_nodes) <= T_max):
+    while ((flag_m==1 and 1 in status_nodes[-1]) or ( (flag_m==0 or flag_sir==1) and 0 in status_nodes[-1])) and (len(status_nodes) <= T_max):
         st_minus_1 = np.copy(st)
         coeff_minus_1 = coeff_lam.copy()
         for i in range(N):
