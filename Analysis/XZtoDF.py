@@ -181,7 +181,7 @@ def data_to_dict(data):
                 r"snap_time",
                 r"T_max",
                 r"mask_type",
-                r"$\mu$"
+                r"$\mu$",
                 r"tol2",
                 r"it_max",
                 r"$T$",
