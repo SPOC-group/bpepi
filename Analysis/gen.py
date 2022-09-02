@@ -107,7 +107,7 @@ def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu = 0, T_max=100):
     status_nodes.append(np.array(s0))
     # Generate the epidemics
     st = np.copy(s0)
-    while ((1 in status_nodes[-1]) or (mu==0. and sum(status_nodes[-1])==N )) and (len(status_nodes) <= T_max):
+    while ((mu>0. and 1 in status_nodes[-1]) or (mu==0. and sum(status_nodes[-1])!=N )) and (len(status_nodes) <= T_max):
         st_minus_1 = np.copy(st)
         for i in range(N):
             if st[i] == 1 :
