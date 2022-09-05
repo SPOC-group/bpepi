@@ -253,6 +253,14 @@ def main():
     elif graph == "tree":
         def generate_graph(N, d):
             return nx.full_rary_tree(r=d, n=N)
+    elif graph == "path":
+        def generate_graph(N, d):
+            return nx.path_graph(n=N)
+    elif graph == "closed_path":
+        def generate_graph(N, d):
+            G = nx.path_graph(n=N)
+            G.add_edge(N-1,0)       
+            return G
     else:
         warnings.warn("GRAPH TYPE NOT ALLOWED")
     N_table = args.N
