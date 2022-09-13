@@ -28,7 +28,7 @@ def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100)
         mask = [1]
         flag_m = 0
         flag_si = 1
-    if len(mask) == T_max+1 : flag_sir = 1
+    elif len(mask) == T_max+1 : flag_sir = 1
     else: flag_dsir = 1
     counter = [mask.copy() for _ in range(N)]
     coeff_lam = np.ones(N)
@@ -74,7 +74,7 @@ def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100)
         status_nodes.append(np.copy(st))
     return np.array(status_nodes)
 
-def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu = 0, T_max=100):
+def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu = 0, T_max=100, verbose=False):
     """Function to simulate an epidemic using conventional SIR model
 
     Args:
@@ -83,7 +83,7 @@ def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu = 0, T_max=100):
         S (int/float): number of infected/probability of being infected at time 0 (number/fraction of sources)
         mu (float): recovery parameter
         T_max (int): maximum allowed time of simulation
-        
+        verbose (bool): if True, print infection messages
 
     Returns:
         status_nodes (list): array of shape (T+1) x N containing the state of all the nodes from time 0 to time T
@@ -98,16 +98,23 @@ def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu = 0, T_max=100):
             if np.random.rand() < S : 
                 s0.append(1)
                 flag_s =1
-            else : s0.append(0)        
+                if verbose : print(f"node {i} is a source")
+            else : s0.append(0)     
+
     else:
         flag_s=1
         s0=np.zeros(N)
         source_list = random.sample(range(N), S)
+        if verbose : 
+            for i in source_list:
+                print(f"node {i} is a source")
         s0[source_list]=1
 
     if (flag_s==0) : 
-        s0[np.random.randint(0,N)]=1
+        x = np.random.randint(0,N)
+        s0[x]=1
         print("No sources... adding a single random source")
+        if verbose : print(f"node {x} is a source")
     status_nodes.append(np.array(s0))
     # Generate the epidemics
     st = np.copy(s0)
@@ -115,11 +122,14 @@ def simulate_one_SIR(G, s_type = "delta", S = 0.01, mu = 0, T_max=100):
         st_minus_1 = np.copy(st)
         for i in range(N):
             if st[i] == 1 :
-                if random.random() < mu : st[i]=2
+                if random.random() < mu : 
+                    st[i]=2
+                    if verbose : print(f"node {i} recovered at time {len(status_nodes)-1}")
             elif st[i] == 0 :
                 for j in nx.neighbors(G,i) :
                     if (st_minus_1[j]==1 and np.random.rand() < G.edges[j,i]['lambda'] and st[i]==0): 
                         st[i]=1
+                        if verbose : print(f"node {i} infected by {j} at time {len(status_nodes)-1}")
         status_nodes.append(np.copy(st))
     return np.array(status_nodes)
 

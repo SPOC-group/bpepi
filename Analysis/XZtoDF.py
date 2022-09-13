@@ -70,9 +70,6 @@ def main():
     with lzma.open(save_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
 
-if __name__ == "__main__":
-    main()
-
 def data_to_dict(data):
     single_dict_list = []
     [graph, 
@@ -275,3 +272,6 @@ def data_to_dict(data):
             ]
             single_dict_list.append(dict(zip(keys, values)))
     return single_dict_list
+
+if __name__ == "__main__":
+    main()
