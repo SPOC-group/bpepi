@@ -266,13 +266,13 @@ def main():
     N_table = args.N
     d_table = args.d
     lam_table = args.lam
-    if args.delta is not None:
+    if len(np.shape(args.delta)) == 1:
         sources_table = args.delta
         s_type = "delta"
     else:
         sources_table = args.n_sources
         s_type = "n_sources"
-    if args.rho is not None:
+    if len(np.shape(args.rho)) == 1:
         obs_table = args.rho
         o_type = "rho"
     else:
