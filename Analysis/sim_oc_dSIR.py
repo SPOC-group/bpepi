@@ -319,7 +319,7 @@ def main():
                 for i_S, S in enumerate(sources_table):
                     for i_M, M in enumerate(obs_table):
                         for sim in range(n_sim):
-                            if args.delta is None:
+                            if len(np.shape(args.delta)) == 0:
                                 pseed=S/N
                             else: pseed=S
                             G = generate_graph(N=N, d=d)

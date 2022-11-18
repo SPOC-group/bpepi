@@ -173,8 +173,9 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
     N = len(conf[0])
     T = len(conf) - 1
     if snap_time == -1: snap_time = random.choice(range(T+1))
-    fS = np.count_nonzero(conf[snap_time] == 0)
-    fI = np.count_nonzero(conf[snap_time] == 1)
+    elif snap_time > T: snap_time = T
+    fS = np.count_nonzero(conf[snap_time] == 0)/N
+    fI = np.count_nonzero(conf[snap_time] == 1)/N
     if o_type == "rho":
         obs_sim = [ (i, conf[snap_time,i], snap_time) for i in range(N) if np.random.random() < M]
     else: 
