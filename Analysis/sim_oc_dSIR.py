@@ -406,7 +406,7 @@ def main():
                                 f_unif = FactorGraph(
                                     N=N, T=T, contacts=contacts, obs=list_obs, delta=pseed, mask=mask, mask_type=mask_type
                                 )
-                                marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
+                                marg_list_unif, eU_list, itU_list, logLU_list = BPloop(
                                     f_unif,
                                     list_obs,
                                     n_iter,
@@ -426,7 +426,7 @@ def main():
                             if print_it : file_name = "IT_" + args.file_name + timestr + ".xz"  
                             else : file_name = args.file_name + timestr + ".xz"  
 
-                            saveObj = (
+                            saveObj1 = (
                                 graph, 
                                 N,
                                 d,
@@ -448,8 +448,6 @@ def main():
                                 tol2,
                                 it_max,
                                 ground_truth,
-                                marg_list_rnd, 
-                                marg_list_inf,
                                 G,
                                 T,
                                 list_obs,
@@ -457,17 +455,49 @@ def main():
                                 fI,
                                 TO,
                                 Delta,
-                                eR_list,
-                                eI_list,
-                                itR_list,
-                                itI_list,
-                                logLR_list,
-                                logLI_list
+                                damp
                             )
+                            if (args.rnd_init == True):
+                                init_type=0
+                                saveObj2 = (
+                                    marg_list_rnd, 
+                                    eR_list,
+                                    itR_list,
+                                    logLR_list,
+                                )
+                            if (args.inf_init == True):
+                                init_type=1
+                                saveObj2 = (
+                                    marg_list_inf,
+                                    eI_list,
+                                    itI_list,
+                                    logLI_list
+                                )
+                            if (args.rnd_inf_init == True):
+                                init_type=2
+                                saveObj2 = (
+                                    marg_list_rnd, 
+                                    marg_list_inf,
+                                    eR_list,
+                                    eI_list,
+                                    itR_list,
+                                    itI_list,
+                                    logLR_list,
+                                    logLI_list
+                                )
+                            if (args.unif_init == True):
+                                init_type=3
+                                saveObj2 = (
+                                    marg_list_unif,
+                                    eU_list,
+                                    itU_list,
+                                    logLU_list
+                                )
+
                             if save_marginals :
                                 with lzma.open(save_dir + file_name, "wb") as f:
-                                    pickle.dump(saveObj, f)
-                            dict_list = dict_list + data_to_dict(saveObj)
+                                    pickle.dump(saveObj2, f)
+                            dict_list = dict_list + data_to_dict(saveObj1,saveObj2, init_type)
     data_frame = pd.DataFrame(dict_list)
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
     if print_it : file_name = "DF_IT_" + timestr + ".xz"  

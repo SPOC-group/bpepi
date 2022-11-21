@@ -70,8 +70,116 @@ def main():
     with lzma.open(save_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
 
-def data_to_dict(data):
+def data_to_dict(data1,data2,init_type):
+    
     single_dict_list = []
+    keys = [
+        r"init",
+        r"graph_type",
+        r"$N$",
+        r"$d$",
+        r"$\lambda$",
+        r"s_type",
+        r"S",
+        r"o_type",
+        r"M",
+        r"iter_space",
+        r"seed",
+        r"tol",
+        r"n_iter",
+        r"obs_type",
+        r"snap_time",
+        r"T_max",
+        r"mask_type",
+        r"$\mu$",
+        r"tol2",
+        r"it_max",
+        r"$T$",
+        r"$f_S$",
+        r"$f_I$",
+        r"$T_O$",
+        r"$\Delta$",
+        r"damping",
+        r"error",
+        r"iteration",
+        r"it_final",
+        r"logL",
+        r"$O_{t=0}$",
+        r"$O_{t=0,RND}$",
+        r"$MO_{t=0}$",
+        r"$MO_{t=0,RND}$",
+        r"$\delta O_{t=0}$",
+        r"$\widetilde{O}_{t=0}$",
+        r"$\widetilde{MO}_{t=0}$",
+        r"$\widetilde{\delta O}_{t=0}$",
+        r"$O_{t=T}$",
+        r"$O_{t=T,RND}$",
+        r"$MO_{t=T}$",
+        r"$MO_{t=T,RND}$",
+        r"$\delta O_{t=T}$",
+        r"$\widetilde{O}_{t=T}$",
+        r"$\widetilde{MO}_{t=T}$",
+        r"$\widetilde{\delta O}_{t=T}$",
+        r"SE",
+        r"MSE",
+        r"$SE_{RND}$",
+        r"$MSE_{RND}$",
+        r"$\delta SE$",
+        r"$R_{SE}$",
+        r"$R_{MSE}$",
+        r"$\delta R_{SE}$",
+    ]
+    if init_type== 0:
+        [marg_list_rnd, 
+        eR_list,
+        itR_list,
+        logLR_list,
+        ] = data2
+        values = DtoD(data1,data2,init="rnd")
+        single_dict_list.append(dict(zip(keys, values))) 
+    elif init_type== 1:
+        [marg_list_inf,
+        eI_list,
+        itI_list,
+        logLI_list
+        ] = data2
+        values = DtoD(data1,data2,init="inf")
+        single_dict_list.append(dict(zip(keys, values))) 
+    elif init_type== 2:
+        [marg_list_rnd, 
+        marg_list_inf,
+        eR_list,
+        eI_list,
+        itR_list,
+        itI_list,
+        logLR_list,
+        logLI_list
+        ] = data2
+        data2R = [
+        marg_list_rnd, 
+        eR_list,
+        itR_list,
+        logLR_list]
+        values = DtoD(data1,data2R,init="rnd")
+        single_dict_list.append(dict(zip(keys, values)))
+        data2I = [
+        marg_list_inf, 
+        eI_list,
+        itI_list,
+        logLI_list]
+        values = DtoD(data1,data2I,init="rnd")
+        single_dict_list.append(dict(zip(keys, values)))           
+    else:
+        values = DtoD(data1,data2,init="inf")
+        single_dict_list.append(dict(zip(keys, values))) 
+    
+    return single_dict_list
+
+if __name__ == "__main__":
+    main()
+
+
+def DtoD(data1,data2,init):
     [graph, 
     N,
     d,
@@ -93,8 +201,6 @@ def data_to_dict(data):
     tol2,
     it_max,
     ground_truth,
-    marg_list_rnd, 
-    marg_list_inf,
     G,
     T,
     list_obs,
@@ -102,176 +208,113 @@ def data_to_dict(data):
     fI,
     TO,
     Delta,
-    eR_list,
-    eI_list,
-    itR_list,
-    itI_list,
-    logLR_list,
-    logLI_list
-    ] = data
-    B_tab = [marg_list_rnd, marg_list_inf]
-    init_tab = ["rnd","inf"]
-    e_tab = [eR_list, eI_list]
-    it_tab = [itR_list, itI_list]
-    logL_tab = [logLR_list, logLI_list]
-    for i, B_list in enumerate(B_tab):
-        init = init_tab[i]
-        for it_idx, B in enumerate(B_list):                        
-            MI0 = B[:, 0]
-            MS0 = 1-MI0
-            MR0 = np.zeros_like(MS0)
-            M0 = np.array([ MS0, MI0, MR0])
-            #Compute general marginals:
-            pS = 1 - np.cumsum(B,axis=1)
-            if mask == ["SI"] : pI = np.cumsum(B,axis=1)
-            elif mask_type == "SIR" : pI = np.array([ np.array([ sum(np.array([ mask[t-ti-1] if ((t>ti) and (t-ti <= len(mask))) else 0 for ti in np.arange(-1,T+1) ]) * b ) for t in range(T+2)]) for b in B])
-            else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T+2)]) for b in B])
-            pR = 1 - pS - pI
-            #Take time T
-            MST = pS[:,T]
-            MIT = pI[:,T]
-            MRT = pR[:,T]
-            MT = np.array([ MST, MIT, MRT])
-            x0_inf = np.argmax(M0,axis=0)
-            xT_inf = np.argmax(MT,axis=0)
-            ti_str = ti_star(ground_truth)
+    damp
+    ] = data1  
+    [marg_list, 
+    e_list,
+    it_list,
+    logL_list,
+    ] = data2
+    for it_idx, B in enumerate(marg_list):   
+                   
+        MI0 = B[:, 0]
+        MS0 = 1-MI0
+        MR0 = np.zeros_like(MS0)
+        M0 = np.array([ MS0, MI0, MR0])
+        #Compute general marginals:
+        pS = 1 - np.cumsum(B,axis=1)
+        if mask == ["SI"] : pI = np.cumsum(B,axis=1)
+        elif mask_type == "SIR" : pI = np.array([ np.array([ sum(np.array([ mask[t-ti-1] if ((t>ti) and (t-ti <= len(mask))) else 0 for ti in np.arange(-1,T+1) ]) * b ) for t in range(T+2)]) for b in B])
+        else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T+2)]) for b in B])
+        pR = 1 - pS - pI
+        #Take time T
+        MST = pS[:,T]
+        MIT = pI[:,T]
+        MRT = pR[:,T]
+        MT = np.array([ MST, MIT, MRT])
+        x0_inf = np.argmax(M0,axis=0)
+        xT_inf = np.argmax(MT,axis=0)
+        ti_str = ti_star(ground_truth)
 
-            ov0 = OV(ground_truth[0], x0_inf)
-            ov0_rnd = OV_rnd(ground_truth[0], M0)
-            mov0 = MOV(M0)
-            mov0_rnd = MOV_rnd(M0)
-            ovT = OV(ground_truth[T], xT_inf)
-            ovT_rnd = OV_rnd(ground_truth[T], MT)
-            movT = MOV(MT)
-            movT_rnd = MOV_rnd(MT)
-            ti_inf = ti_inferred(B)
-            ti_rnd = ti_random(B)
-            se = SE(ti_str, ti_inf)
-            mse = MSE(B, ti_inf)
-            se_rnd = SE(ti_str, ti_rnd)
-            mse_rnd = MSE(B, ti_rnd)
-            e = e_tab[i][it_idx]
-            it = it_tab[i][it_idx]
-            it_final = it_tab[i][-1]
-            logL = logL_tab[i][it_idx]
-            ov0t = (ov0 - ov0_rnd) / (1 - ov0_rnd)
-            mov0t = (mov0 - mov0_rnd) / (1 - mov0_rnd)
-            ovTt = (ovT - ovT_rnd) / (1 + 1e-12 - ovT_rnd)
-            movTt = (movT - movT_rnd) / (1 + 1e-12 - movT_rnd)
-            Rse = (se_rnd - se) / se_rnd
-            Rmse = (mse_rnd - mse) / mse_rnd
-            keys = [
-                r"init",
-                r"graph_type",
-                r"$N$",
-                r"$d$",
-                r"$\lambda$",
-                r"s_type",
-                r"S",
-                r"o_type",
-                r"M",
-                r"iter_space",
-                r"seed",
-                r"tol",
-                r"n_iter",
-                r"obs_type",
-                r"snap_time",
-                r"T_max",
-                r"mask_type",
-                r"$\mu$",
-                r"tol2",
-                r"it_max",
-                r"$T$",
-                r"$f_S$",
-                r"$f_I$",
-                r"$T_O$",
-                r"$\Delta$",
-                r"error",
-                r"iteration",
-                r"it_final",
-                r"logL",
-                r"$O_{t=0}$",
-                r"$O_{t=0,RND}$",
-                r"$MO_{t=0}$",
-                r"$MO_{t=0,RND}$",
-                r"$\delta O_{t=0}$",
-                r"$\widetilde{O}_{t=0}$",
-                r"$\widetilde{MO}_{t=0}$",
-                r"$\widetilde{\delta O}_{t=0}$",
-                r"$O_{t=T}$",
-                r"$O_{t=T,RND}$",
-                r"$MO_{t=T}$",
-                r"$MO_{t=T,RND}$",
-                r"$\delta O_{t=T}$",
-                r"$\widetilde{O}_{t=T}$",
-                r"$\widetilde{MO}_{t=T}$",
-                r"$\widetilde{\delta O}_{t=T}$",
-                r"SE",
-                r"MSE",
-                r"$SE_{RND}$",
-                r"$MSE_{RND}$",
-                r"$\delta SE$",
-                r"$R_{SE}$",
-                r"$R_{MSE}$",
-                r"$\delta R_{SE}$",
-            ]
-            values = [
-                init,
-                graph, 
-                N,
-                d,
-                lam,
-                s_type,
-                S,
-                o_type,
-                M,
-                iter_space,
-                seed,
-                tol,
-                n_iter,
-                obs_type,
-                snap_time,
-                T_max,
-                mask_type,
-                mu,
-                tol2,
-                it_max,
-                T,
-                fS,
-                fI,
-                TO,
-                Delta,
-                e,
-                it,
-                it_final,
-                logL,
-                ov0,
-                ov0_rnd,
-                mov0,
-                mov0_rnd,
-                ov0 - mov0,
-                ov0t,
-                mov0t,
-                ov0t - mov0t,
-                ovT,
-                ovT_rnd,
-                movT,
-                movT_rnd,
-                ovT - movT,
-                ovTt,
-                movTt,
-                ovTt - movTt,
-                se,
-                mse,
-                se_rnd,
-                mse_rnd,
-                se - mse,
-                Rse,
-                Rmse,
-                Rse - Rmse
-            ]
-            single_dict_list.append(dict(zip(keys, values)))
-    return single_dict_list
-
-if __name__ == "__main__":
-    main()
+        ov0 = OV(ground_truth[0], x0_inf)
+        ov0_rnd = OV_rnd(ground_truth[0], M0)
+        mov0 = MOV(M0)
+        mov0_rnd = MOV_rnd(M0)
+        ovT = OV(ground_truth[T], xT_inf)
+        ovT_rnd = OV_rnd(ground_truth[T], MT)
+        movT = MOV(MT)
+        movT_rnd = MOV_rnd(MT)
+        ti_inf = ti_inferred(B)
+        ti_rnd = ti_random(B)
+        se = SE(ti_str, ti_inf)
+        mse = MSE(B, ti_inf)
+        se_rnd = SE(ti_str, ti_rnd)
+        mse_rnd = MSE(B, ti_rnd)
+        e = e_list[it_idx]
+        it = it_list[it_idx]
+        it_final = it_list[-1]
+        logL = logL_list[it_idx]
+        ov0t = (ov0 - ov0_rnd) / (1 - ov0_rnd)
+        mov0t = (mov0 - mov0_rnd) / (1 - mov0_rnd)
+        ovTt = (ovT - ovT_rnd) / (1 + 1e-12 - ovT_rnd)
+        movTt = (movT - movT_rnd) / (1 + 1e-12 - movT_rnd)
+        Rse = (se_rnd - se) / se_rnd
+        Rmse = (mse_rnd - mse) / mse_rnd
+        
+        values = [
+            init,
+            graph, 
+            N,
+            d,
+            lam,
+            s_type,
+            S,
+            o_type,
+            M,
+            iter_space,
+            seed,
+            tol,
+            n_iter,
+            obs_type,
+            snap_time,
+            T_max,
+            mask_type,
+            mu,
+            tol2,
+            it_max,
+            T,
+            fS,
+            fI,
+            TO,
+            Delta,
+            damp,
+            e,
+            it,
+            it_final,
+            logL,
+            ov0,
+            ov0_rnd,
+            mov0,
+            mov0_rnd,
+            ov0 - mov0,
+            ov0t,
+            mov0t,
+            ov0t - mov0t,
+            ovT,
+            ovT_rnd,
+            movT,
+            movT_rnd,
+            ovT - movT,
+            ovTt,
+            movTt,
+            ovTt - movTt,
+            se,
+            mse,
+            se_rnd,
+            mse_rnd,
+            se - mse,
+            Rse,
+            Rmse,
+            Rse - Rmse
+        ]
+        return values
