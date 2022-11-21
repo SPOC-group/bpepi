@@ -25,20 +25,21 @@ def BPloop(
     print_it,
     iter_space,
     tol2,
-    it_max
+    it_max,
+    init
 ):
     #Initialization
-    for it in range(n_iter):
-        e0 = f.iterate()
-        if e0 < tol:
-            break
-    if e0 > tol:
-        warnings.warn("Warning... Initialization is not converging")
-    f.reset_obs(list_obs)
+    if init == 1:
+        for it in range(n_iter):
+            e0 = f.iterate()
+            if e0 < tol:
+                break
+        if e0 > tol:
+            warnings.warn("Warning... Initialization is not converging")
+        f.reset_obs(list_obs)
+
     e = np.nan
     #BP iteration
-    tol2 = 1e-2
-    it_max = 10000
     if print_it:
         marg_list=[f.marginals()]
         it_list=[0]
@@ -233,6 +234,30 @@ def main():
         action="store_true",
         help="If true, simulates a conventional SIR model",
     )
+    parser.add_argument(
+        "--damping", type=float, default=0., help="Damping factor for the BP iterations. Default: 0"
+    )
+    group_i = parser.add_mutually_exclusive_group(required=True)
+    group_i.add_argument(
+        "--unif_init",
+        action="store_true",
+        help="Start BP from uniform marginals",
+    )
+    group_i.add_argument(
+        "--rnd_init",
+        action="store_true",
+        help="Start BP from 'uninformed' solution",
+    )
+    group_i.add_argument(
+        "--inf_init",
+        action="store_true",
+        help="Start BP from 'informed' solution",
+    )
+    group_i.add_argument(
+        "--rnd_inf_init",
+        action="store_true",
+        help="Run BP from both rnd and inf initializations",
+    )
 
     args = parser.parse_args()
     print("arguments:")
@@ -343,33 +368,51 @@ def main():
                             else:
                                 list_obs, fS, fI, TO = generate_snapshot_obs(ground_truth, o_type=o_type, M=M, snap_time=args.snap_time)
                                 list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
-
-                            f_rnd = FactorGraph(
-                                N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
-                            )
-                            f_informed = FactorGraph(
-                                N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
-                            )
-                            marg_list_rnd, eR_list, itR_list, logLR_list = BPloop(
-                                f_rnd,
-                                list_obs,
-                                n_iter,
-                                tol,
-                                print_it,
-                                iter_space,
-                                tol2,
-                                it_max
-                            )
-                            marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
-                                f_informed,
-                                list_obs,
-                                n_iter,
-                                tol,
-                                print_it,
-                                iter_space,
-                                tol2,
-                                it_max
-                            )
+                            if ( (args.rnd_init == True) or (args.rnd_inf_init == True)):
+                                f_rnd = FactorGraph(
+                                    N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
+                                )
+                                marg_list_rnd, eR_list, itR_list, logLR_list = BPloop(
+                                    f_rnd,
+                                    list_obs,
+                                    n_iter,
+                                    tol,
+                                    print_it,
+                                    iter_space,
+                                    tol2,
+                                    it_max,
+                                    init=1
+                                )
+                            if ( (args.inf_init == True) or (args.rnd_inf_init == True)):
+                                f_informed = FactorGraph(
+                                    N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
+                                )
+                                marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
+                                    f_informed,
+                                    list_obs,
+                                    n_iter,
+                                    tol,
+                                    print_it,
+                                    iter_space,
+                                    tol2,
+                                    it_max,
+                                    init=1
+                                )
+                            if (args.unif_init == True):
+                                f_unif = FactorGraph(
+                                    N=N, T=T, contacts=contacts, obs=list_obs, delta=pseed, mask=mask, mask_type=mask_type
+                                )
+                                marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
+                                    f_unif,
+                                    list_obs,
+                                    n_iter,
+                                    tol,
+                                    print_it,
+                                    iter_space,
+                                    tol2,
+                                    it_max,
+                                    init=0
+                                )
                             print(
                                 f"\r N: {i_N+1}/{len(N_table)} - d: {i_d+1}/{len(d_table)} - lam: {i_l+1}/{len(lam_table)} - S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
                             )
