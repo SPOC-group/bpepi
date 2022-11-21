@@ -1,7 +1,6 @@
 import numpy as np
 from bpepi.Modules.st import *
 
-
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
@@ -124,7 +123,7 @@ class FactorGraph:
         arr_5 = np.exp(arr_4 - arr_copy)
         return arr_5
 
-    def iterate(self):
+    def iterate(self, damp):
         """Single iteration of the Belief Propagation algorithm
 
         Returns:
@@ -185,8 +184,9 @@ class FactorGraph:
             (np.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
         )
         new_msgs = update_one + update_two + update_three
-        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
-        self.messages.values[self.out_msgs] = new_msgs / norm
+        new_damped_msgs = (1-damp) * new_msgs + damp * old_msgs[self.out_msgs]# Add dumping
+        norm = np.reshape(np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+        self.messages.values[self.out_msgs] = new_damped_msgs / norm
         difference = np.abs(old_msgs - self.messages.values).max()
 
         return difference
@@ -234,7 +234,7 @@ class FactorGraph:
 
         return difference
 
-    def update(self, maxit=100, tol=1e-6, print_iter=None):
+    def update(self, maxit=100, tol=1e-6, damp=0., print_iter=None):
         """Multiple iterations of the BP algorithm through the method iterate()
 
         Args:
@@ -248,7 +248,7 @@ class FactorGraph:
         i = 0
         error = 1
         while i < maxit and error > tol:
-            error = self.iterate()
+            error = self.iterate(damp)
             i += 1
             if print_iter != None:
                 print_iter(error, i)

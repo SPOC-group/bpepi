@@ -184,11 +184,11 @@ def compute_Lambdas_dSIR(Lambda0, Lambda1, contacts, mask):  # added mask to wor
     Lambda0.values[:, a, b] = 0
 
     # Compute and apply the infectivity masks
-    Mask0 = np.array([ np.asarray(([1]*(tj+1) + mask + [0]*(Tp2-len(mask)-tj-1) )[:Tp2]) for tj in range(Tp2) ])
     Mask1 = np.array([ np.asarray(([1]*(tj+2) + mask + [0]*(Tp2-len(mask)-tj-2) )[:Tp2]) for tj in range(Tp2) ])
+    Mask0 = np.array([ np.asarray(([1]*(tj+1) + mask + [0]*(Tp2-len(mask)-tj-1) )[:Tp2]) for tj in range(Tp2) ])
 
-    Lambda0.values[:] = Lambda0.values[:]*Mask0
     Lambda1.values[:] = Lambda1.values[:]*Mask1
+    Lambda0.values[:] = Lambda0.values[:]*Mask0
 
     # takes 1 - lambdas
     Lambda1.values = 1 - Lambda1.values
