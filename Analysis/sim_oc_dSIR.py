@@ -26,12 +26,13 @@ def BPloop(
     iter_space,
     tol2,
     it_max,
-    init
+    init,
+    damp
 ):
     #Initialization
     if init == 1:
         for it in range(n_iter):
-            e0 = f.iterate()
+            e0 = f.iterate(damp)
             if e0 < tol:
                 break
         if e0 > tol:
@@ -46,7 +47,7 @@ def BPloop(
         e_list=[e]
         logL_list = [f.loglikelihood()]
     for it in np.arange(1,n_iter+1):
-        e = f.iterate()
+        e = f.iterate(damp)
         if print_it and (
             (it % iter_space == 0) or (e < tol) or (it == n_iter)
         ):
@@ -58,7 +59,7 @@ def BPloop(
             break
     while (e > tol) and (e < tol2):
         it = it + 1
-        e = f.iterate()
+        e = f.iterate(damp)
         if print_it and ((it % iter_space == 0) or (e < tol) or (it == it_max)):
             marg_list.append(f.marginals())
             it_list.append(it)
@@ -334,6 +335,7 @@ def main():
     it_max = args.it_max
     save_marginals = args.save_marginals
     SIR_sim = args.SIR_sim
+    damp=args.damping
 
     dict_list = []
     t1 = time.time()
@@ -381,7 +383,8 @@ def main():
                                     iter_space,
                                     tol2,
                                     it_max,
-                                    init=1
+                                    init=1,
+                                    damp=damp
                                 )
                             if ( (args.inf_init == True) or (args.rnd_inf_init == True)):
                                 f_informed = FactorGraph(
@@ -396,7 +399,8 @@ def main():
                                     iter_space,
                                     tol2,
                                     it_max,
-                                    init=1
+                                    init=1,
+                                    damp=damp
                                 )
                             if (args.unif_init == True):
                                 f_unif = FactorGraph(
@@ -411,7 +415,8 @@ def main():
                                     iter_space,
                                     tol2,
                                     it_max,
-                                    init=0
+                                    init=0,
+                                    damp=damp
                                 )
                             print(
                                 f"\r N: {i_N+1}/{len(N_table)} - d: {i_d+1}/{len(d_table)} - lam: {i_l+1}/{len(lam_table)} - S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
