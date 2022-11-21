@@ -370,9 +370,10 @@ def main():
                             else:
                                 list_obs, fS, fI, TO = generate_snapshot_obs(ground_truth, o_type=o_type, M=M, snap_time=args.snap_time)
                                 list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
+                            T_BP=max(TO,T)
                             if ( (args.rnd_init == True) or (args.rnd_inf_init == True)):
                                 f_rnd = FactorGraph(
-                                    N=N, T=T, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
+                                    N=N, T=T_BP, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
                                 )
                                 marg_list_rnd, eR_list, itR_list, logLR_list = BPloop(
                                     f_rnd,
@@ -388,7 +389,7 @@ def main():
                                 )
                             if ( (args.inf_init == True) or (args.rnd_inf_init == True)):
                                 f_informed = FactorGraph(
-                                    N=N, T=T, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
+                                    N=N, T=T_BP, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
                                 )
                                 marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
                                     f_informed,
@@ -404,7 +405,7 @@ def main():
                                 )
                             if (args.unif_init == True):
                                 f_unif = FactorGraph(
-                                    N=N, T=T, contacts=contacts, obs=list_obs, delta=pseed, mask=mask, mask_type=mask_type
+                                    N=N, T=T_BP, contacts=contacts, obs=list_obs, delta=pseed, mask=mask, mask_type=mask_type
                                 )
                                 marg_list_unif, eU_list, itU_list, logLU_list = BPloop(
                                     f_unif,

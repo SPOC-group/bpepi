@@ -170,7 +170,7 @@ def data_to_dict(data1,data2,init_type):
         values = DtoD(data1,data2I,init="rnd")
         single_dict_list.append(dict(zip(keys, values)))           
     else:
-        values = DtoD(data1,data2,init="inf")
+        values = DtoD(data1,data2,init="unif")
         single_dict_list.append(dict(zip(keys, values))) 
     
     return single_dict_list
@@ -215,6 +215,7 @@ def DtoD(data1,data2,init):
     it_list,
     logL_list,
     ] = data2
+    T_BP=max(T,TO)
     for it_idx, B in enumerate(marg_list):   
                    
         MI0 = B[:, 0]
@@ -224,8 +225,8 @@ def DtoD(data1,data2,init):
         #Compute general marginals:
         pS = 1 - np.cumsum(B,axis=1)
         if mask == ["SI"] : pI = np.cumsum(B,axis=1)
-        elif mask_type == "SIR" : pI = np.array([ np.array([ sum(np.array([ mask[t-ti-1] if ((t>ti) and (t-ti <= len(mask))) else 0 for ti in np.arange(-1,T+1) ]) * b ) for t in range(T+2)]) for b in B])
-        else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T+2)]) for b in B])
+        elif mask_type == "SIR" : pI = np.array([ np.array([ sum(np.array([ mask[t-ti-1] if ((t>ti) and (t-ti <= len(mask))) else 0 for ti in np.arange(-1,T_BP+1) ]) * b ) for t in range(T_BP+2)]) for b in B])
+        else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T_BP+2)]) for b in B])
         pR = 1 - pS - pI
         #Take time T
         MST = pS[:,T]
