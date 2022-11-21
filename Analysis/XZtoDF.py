@@ -128,21 +128,12 @@ def data_to_dict(data1,data2,init_type):
         r"$R_{SE}$",
         r"$R_{MSE}$",
         r"$\delta R_{SE}$",
+        r"ConvChecks"
     ]
     if init_type== 0:
-        [marg_list_rnd, 
-        eR_list,
-        itR_list,
-        logLR_list,
-        ] = data2
         values = DtoD(data1,data2,init="rnd")
         single_dict_list.append(dict(zip(keys, values))) 
     elif init_type== 1:
-        [marg_list_inf,
-        eI_list,
-        itI_list,
-        logLI_list
-        ] = data2
         values = DtoD(data1,data2,init="inf")
         single_dict_list.append(dict(zip(keys, values))) 
     elif init_type== 2:
@@ -153,20 +144,24 @@ def data_to_dict(data1,data2,init_type):
         itR_list,
         itI_list,
         logLR_list,
-        logLI_list
+        logLI_list,
+        errR_list,
+        errI_list
         ] = data2
         data2R = [
         marg_list_rnd, 
         eR_list,
         itR_list,
-        logLR_list]
+        logLR_list,
+        errR_list]
         values = DtoD(data1,data2R,init="rnd")
         single_dict_list.append(dict(zip(keys, values)))
         data2I = [
         marg_list_inf, 
         eI_list,
         itI_list,
-        logLI_list]
+        logLI_list,
+        errI_list]
         values = DtoD(data1,data2I,init="rnd")
         single_dict_list.append(dict(zip(keys, values)))           
     else:
@@ -214,6 +209,7 @@ def DtoD(data1,data2,init):
     e_list,
     it_list,
     logL_list,
+    err_list
     ] = data2
     T_BP=max(T,TO)
     for it_idx, B in enumerate(marg_list):   
@@ -316,6 +312,7 @@ def DtoD(data1,data2,init):
             se - mse,
             Rse,
             Rmse,
-            Rse - Rmse
+            Rse - Rmse,
+            err_list
         ]
         return values

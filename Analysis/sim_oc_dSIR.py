@@ -39,7 +39,9 @@ def BPloop(
             warnings.warn("Warning... Initialization is not converging")
         f.reset_obs(list_obs)
 
+    err_space=10
     e = np.nan
+    err_list = []
     #BP iteration
     if print_it:
         marg_list=[f.marginals()]
@@ -55,26 +57,30 @@ def BPloop(
             it_list.append(it)
             e_list.append(e)
             logL_list.append(f.loglikelihood())
+        if (it % err_space == 0) : err_list.append([it,e])
         if e < tol:
             break
-    while (e > tol) and (e < tol2):
-        it = it + 1
-        e = f.iterate(damp)
-        if print_it and ((it % iter_space == 0) or (e < tol) or (it == it_max)):
-            marg_list.append(f.marginals())
-            it_list.append(it)
-            e_list.append(e)
-            logL_list.append(f.loglikelihood())
-        if it == it_max:
-            break
+    if e < tol2:
+        while (e > tol):
+            it = it + 1
+            e = f.iterate(damp)
+            if print_it and ((it % iter_space == 0) or (e < tol) or (it == it_max)):
+                marg_list.append(f.marginals())
+                it_list.append(it)
+                e_list.append(e)
+                logL_list.append(f.loglikelihood())
+            if (it % err_space == 0) : err_list.append([it,e])
+            if it == it_max:
+                break
     
     if not print_it : 
         marg_list = [f.marginals()]
         it_list = [it]
         e_list = [e]
         logL_list = [f.loglikelihood()]
+    if it != it_max : err_list.append([it,e])
 
-    return marg_list, e_list, it_list, logL_list
+    return marg_list, e_list, it_list, logL_list, err_list
 
 def main():
     parser = argparse.ArgumentParser(description="Compute marginals using BPEpI")
@@ -375,7 +381,7 @@ def main():
                                 f_rnd = FactorGraph(
                                     N=N, T=T_BP, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
                                 )
-                                marg_list_rnd, eR_list, itR_list, logLR_list = BPloop(
+                                marg_list_rnd, eR_list, itR_list, logLR_list, errR_list = BPloop(
                                     f_rnd,
                                     list_obs,
                                     n_iter,
@@ -391,7 +397,7 @@ def main():
                                 f_informed = FactorGraph(
                                     N=N, T=T_BP, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
                                 )
-                                marg_list_inf, eI_list, itI_list, logLI_list = BPloop(
+                                marg_list_inf, eI_list, itI_list, logLI_list, errI_list = BPloop(
                                     f_informed,
                                     list_obs,
                                     n_iter,
@@ -407,7 +413,7 @@ def main():
                                 f_unif = FactorGraph(
                                     N=N, T=T_BP, contacts=contacts, obs=list_obs, delta=pseed, mask=mask, mask_type=mask_type
                                 )
-                                marg_list_unif, eU_list, itU_list, logLU_list = BPloop(
+                                marg_list_unif, eU_list, itU_list, logLU_list, errU_list = BPloop(
                                     f_unif,
                                     list_obs,
                                     n_iter,
@@ -465,6 +471,7 @@ def main():
                                     eR_list,
                                     itR_list,
                                     logLR_list,
+                                    errR_list
                                 )
                             if (args.inf_init == True):
                                 init_type=1
@@ -472,7 +479,8 @@ def main():
                                     marg_list_inf,
                                     eI_list,
                                     itI_list,
-                                    logLI_list
+                                    logLI_list,
+                                    errI_list
                                 )
                             if (args.rnd_inf_init == True):
                                 init_type=2
@@ -484,7 +492,9 @@ def main():
                                     itR_list,
                                     itI_list,
                                     logLR_list,
-                                    logLI_list
+                                    logLI_list,
+                                    errR_list,
+                                    errI_list,
                                 )
                             if (args.unif_init == True):
                                 init_type=3
@@ -492,7 +502,8 @@ def main():
                                     marg_list_unif,
                                     eU_list,
                                     itU_list,
-                                    logLU_list
+                                    logLU_list,
+                                    errU_list
                                 )
 
                             if save_marginals :
