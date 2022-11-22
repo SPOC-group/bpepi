@@ -162,7 +162,7 @@ def data_to_dict(data1,data2,init_type):
         itI_list,
         logLI_list,
         errI_list]
-        values = DtoD(data1,data2I,init="rnd")
+        values = DtoD(data1,data2I,init="inf")
         single_dict_list.append(dict(zip(keys, values)))           
     else:
         values = DtoD(data1,data2,init="unif")
