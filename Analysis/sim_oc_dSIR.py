@@ -366,7 +366,6 @@ def main():
                                 warnings.warn("The simulation exeeds the maximum time limit!")
                                 sys.exit()
                             T = len(ground_truth) - 1
-                            contacts = generate_contacts(G, T, lam)
                             if args.obs_type == "sensors":
                                 list_obs = generate_sensors_obs(ground_truth, o_type=o_type, M=M)
                                 list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
@@ -377,6 +376,7 @@ def main():
                                 list_obs, fS, fI, TO = generate_snapshot_obs(ground_truth, o_type=o_type, M=M, snap_time=args.snap_time)
                                 list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
                             T_BP=max(TO,T)
+                            contacts = generate_contacts(G, T_BP, lam)
                             if ( (args.rnd_init == True) or (args.rnd_inf_init == True)):
                                 f_rnd = FactorGraph(
                                     N=N, T=T_BP, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
