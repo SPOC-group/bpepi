@@ -31,6 +31,7 @@ FactorGraph(
     mask_type = "SI",
     verbose = False
 )
+
         Class to update the BP messages for the SI model
 
         Arguments
@@ -58,7 +59,8 @@ SparseTensor(
     N = 0,
     T = 0,
     contacts = [],
-    Tensor_to_copy = None)
+    Tensor_to_copy = None
+)
 
         Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor
 
@@ -68,6 +70,7 @@ SparseTensor(
         T (int): Value of the last simulation time
         contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t))
         Tensor_to_copy (SparseTensor): An existing SparseTensor to copy and from which to create a new object
+        
         Main methods
         ------------
         init_like(Tensor): Initialization of the tensor, given another tensor, putting all values to one
