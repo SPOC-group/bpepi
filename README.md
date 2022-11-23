@@ -18,7 +18,7 @@ run `python setup.py install`
 
 For example usage see the `examples/demo.ipynb` notebook.
 
-###FactorGraph class
+### FactorGraph class
 
 ```
 FactorGraph(
