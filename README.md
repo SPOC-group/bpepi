@@ -1,24 +1,26 @@
-##BPEPI (Belief propagation for epidemic inference)
+# BPEPI (Belief propagation for epidemic inference)
   
 Belief propagation for the inference of patient zeros in compartmental models.
 
 Written by Antoine Aragon, Davide Ghio, Indaco Biazzo, Lenka Zdeborová. Last updated on 23-11-2022.
 
-### Requirements
+## Requirements
 
 - `python3`
 - `numpy`
 - `networkx`
 
-### Installation
+## Installation
 
 run `python setup.py install`
 
-### Documentation
+## Documentation
 
 For example usage see the `examples/demo.ipynb` notebook.
 
-```
+###FactorGraph class
+
+```python
 FactorGraph(
     N,
     T,
@@ -47,7 +49,11 @@ FactorGraph(
         update(maxit, tol, damp, print_iter): Multiple iterations of the BP algorithm through the iterate method
         marginals(): Computes the array of the BP marginals for each node
         reset_obs(obs): Resets the observations, starting from a provided list.
-        
+```
+
+### SparseTensor class
+
+```python
 SparseTensor(
     N = 0,
     T = 0,
