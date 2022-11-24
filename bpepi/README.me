@@ -1,4 +1,4 @@
-##BPEPI (Belief propagation for epidemic inference)
+## BPEPI (Belief propagation for epidemic inference)
 
 Belief propagation for the inference of patient zeros in compartmental models. 
 
