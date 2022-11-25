@@ -1,8 +1,8 @@
-# BPEPI (Belief propagation for epidemic inference)
+# BPEPI ([B]elief [P]ropagation for [EP]idemic [I]nference)
   
-Belief propagation algorithm for inferring patient zeros in compartmental models.
+Belief propagation algorithm for inference problems in compartmental spreading models.
 
-Written by Antoine Aragon, Davide Ghio, Indaco Biazzo and Lenka Zdeborová. Last updated on 23-11-2022.
+Authors: Antoine Aragon, Indaco Biazzo, Davide Ghio and Lenka Zdeborová. Last updated on 23-11-2022.
 
 ## Requirements
 
