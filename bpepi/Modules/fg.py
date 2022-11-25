@@ -184,9 +184,13 @@ class FactorGraph:
             (np.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
         )
         new_msgs = update_one + update_two + update_three
-        new_damped_msgs = (1-damp) * new_msgs + damp * old_msgs[self.out_msgs]# Add dumping
-        norm = np.reshape(np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
-        self.messages.values[self.out_msgs] = new_damped_msgs / norm
+        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+        norm_msgs = new_msgs / norm
+        if damp > 1e-6:
+            new_damped_msgs = (1-damp) * norm_msgs + damp * old_msgs[self.out_msgs]# Add dumping
+            damped_norm = np.reshape(np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+            norm_msgs = new_damped_msgs / damped_norm
+        self.messages.values[self.out_msgs] = norm_msgs
         difference = np.abs(old_msgs - self.messages.values).max()
 
         return difference
