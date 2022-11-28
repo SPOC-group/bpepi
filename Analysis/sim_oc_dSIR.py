@@ -32,53 +32,77 @@ def BPloop(
     #Initialization
     if init == 1:
         for it in range(n_iter):
-            e0 = f.iterate(damp)
-            if e0 < tol:
+            e0_max, e0_ave = f.iterate(damp)
+            if e0_ave < tol:
                 break
-        if e0 > tol:
+        if e0_ave > tol:
             warnings.warn("Warning... Initialization is not converging")
         f.reset_obs(list_obs)
 
     err_space=10
-    e = np.nan
+    e_max = np.nan
+    e_ave = np.nan
     err_list = []
     #BP iteration
     if print_it:
         marg_list=[f.marginals()]
         it_list=[0]
-        e_list=[e]
+        e_list=[e_ave]
         logL_list = [f.loglikelihood()]
     for it in np.arange(1,n_iter+1):
-        e = f.iterate(damp)
+        e_max, e_ave = f.iterate(damp=0.)
         if print_it and (
-            (it % iter_space == 0) or (e < tol) or (it == n_iter)
+            (it % iter_space == 0) or (e_ave < tol) or (it == n_iter)
         ):
+            marg_list.append(f.marginals())
+            it_list.append(it)
+            e_list.append(e_ave)
+            logL_list.append(f.loglikelihood())
+        if (it % err_space == 0) : 
+            err_list.append([it,e_max,e_ave])
+        if e_ave < tol:
+            break
+    if e_ave < tol2:
+        while (e_ave > tol):
+            it = it + 1
+            e_max, e_ave = f.iterate(damp=0.)
+            if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
+                marg_list.append(f.marginals())
+                it_list.append(it)
+                e_list.append(e_ave)
+                logL_list.append(f.loglikelihood())
+            if (it % err_space == 0) : err_list.append([it,e_max,e_ave])
+            if it == n_iter*2:
+                break
+    while (e_ave > tol):
+        it = it + 1
+        e_max, e_ave = f.iterate(damp=damp)
+        if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
             marg_list.append(f.marginals())
             it_list.append(it)
             e_list.append(e)
             logL_list.append(f.loglikelihood())
-        if (it % err_space == 0) : err_list.append([it,e])
-        if e < tol:
+        if (it % err_space == 0) : err_list.append([it,e_max,e_ave])
+        if it == n_iter*3:
             break
-    if e < tol2:
-        while (e > tol):
-            it = it + 1
-            e = f.iterate(damp)
-            if print_it and ((it % iter_space == 0) or (e < tol) or (it == it_max)):
-                marg_list.append(f.marginals())
-                it_list.append(it)
-                e_list.append(e)
-                logL_list.append(f.loglikelihood())
-            if (it % err_space == 0) : err_list.append([it,e])
-            if it == it_max:
-                break
+    while (e_ave > tol):
+        it = it + 1
+        e_max, e_ave = f.iterate(damp=damp*2)
+        if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
+            marg_list.append(f.marginals())
+            it_list.append(it)
+            e_list.append(e_ave)
+            logL_list.append(f.loglikelihood())
+        if (it % err_space == 0) : err_list.append([it,e_max,e_ave])
+        if it == it_max:
+            break
     
     if not print_it : 
         marg_list = [f.marginals()]
         it_list = [it]
-        e_list = [e]
+        e_list = [e_ave]
         logL_list = [f.loglikelihood()]
-    if it != it_max : err_list.append([it,e])
+    if it != it_max : err_list.append([it,e_max,e_ave])
 
     return marg_list, e_list, it_list, logL_list, err_list
 
@@ -165,12 +189,12 @@ def main():
         help="seed for the number generators",
     )
     parser.add_argument(
-        "--tol", type=float, default=1e-9, help="Tolerance of the difference between marginals to stop BP "
+        "--tol", type=float, default=1e-6, help="Tolerance of the difference between marginals to stop BP "
     )
     parser.add_argument(
         "--n_iter",
         type=int,
-        default=2000,
+        default=500,
         help="Max number of iterations of the algorithm",
     )
     group_ot = parser.add_mutually_exclusive_group(required=True)
@@ -226,10 +250,10 @@ def main():
         help="Set the mask array in order to simulate SI model",
     )
     parser.add_argument(
-        "--tol2", type=float, default=1e-2, help="Tolerance of the difference between marginals to stop BP for the second part "
+        "--tol2", type=float, default=1e-3, help="Tolerance of the difference between marginals to stop BP for the second part "
     )
     parser.add_argument(
-        "--it_max", type=int, default=10000, help="Max number of iterations of the algorithm, after the first threshold "
+        "--it_max", type=int, default=50000, help="Max number of iterations of the algorithm, after the first threshold "
     )
     parser.add_argument(
         "--save_marginals",
@@ -242,7 +266,7 @@ def main():
         help="If true, simulates a conventional SIR model",
     )
     parser.add_argument(
-        "--damping", type=float, default=0., help="Damping factor for the BP iterations. Default: 0"
+        "--damping", type=float, default=0., help="Damping factor for the BP iterations. Needs to be smaller than 0.5. Default: 0"
     )
     group_i = parser.add_mutually_exclusive_group(required=True)
     group_i.add_argument(
