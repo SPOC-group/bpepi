@@ -273,16 +273,22 @@ class FactorGraph:
         )
         # print(update_one, update_two, update_three)
         new_msgs = update_one + update_two + update_three
-        new_damped_msgs = (1 - damp) * new_msgs + damp * old_msgs[
-            self.out_msgs
-        ]  # Add dumping
         norm = torch.reshape(
-            torch.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
+            torch.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
         )
-        self.messages.values[self.out_msgs] = new_damped_msgs / norm
-        difference = torch.abs(old_msgs - self.messages.values).max()
+        norm_msgs = new_msgs / norm
+        if damp > 1e-6:
+            new_damped_msgs = (1 - damp) * norm_msgs + damp * old_msgs[
+                self.out_msgs
+            ]  # Add dumping
+            damped_norm = torch.reshape(
+                torch.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
+            )
+            norm_msgs = new_damped_msgs / damped_norm
+        self.messages.values[self.out_msgs] = norm_msgs
+        err_array = torch.abs(old_msgs - self.messages.values)
 
-        return difference
+        return err_array.max().numpy(), err_array.mean().numpy()
 
     def pop_dyn_RRG(self, c=3):
         """Single iteration of the Population dynamics algorithm for a d-RRG
@@ -341,13 +347,13 @@ class FactorGraph:
             error (float): Error on the messages at the end of the iterations
         """
         i = 0
-        error = 1
-        while i < maxit and error > tol:
-            error = self.iterate(damp)
+        error_mean = 1
+        while i < maxit and error_mean > tol:
+            error_max, error_mean = self.iterate(damp)
             i += 1
             if print_iter != None:
-                print_iter(error, i)
-        return i, error
+                print_iter([error_max, error_mean], i)
+        return i, [error_max, error_mean]
 
     def marginals(self):
         """Computes the array of the BP marginals for each node

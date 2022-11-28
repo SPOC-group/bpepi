@@ -1,10 +1,13 @@
 import numpy as np
 from bpepi.Modules.st import *
 
+
 class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
-    def __init__(self, N, T, contacts, obs, delta, mask=["SI"], mask_type="SI", verbose=False):
+    def __init__(
+        self, N, T, contacts, obs, delta, mask=["SI"], mask_type="SI", verbose=False
+    ):
         """Construction of the FactorGraph object, starting from contacts and observations
 
         Args:
@@ -15,7 +18,7 @@ class FactorGraph:
             delta (float): Probability for an individual to be a source
             mask (list): if it is equal to ["SI"], the function simulates an SI model, otherwise the i-th element of the
                 list (between 0 and 1) represents the infectivity of the nodes at i timesteps after the infection
-            mask_type (string): Type of inference model. If equal to "SIR", it means we are simulating a SIR model 
+            mask_type (string): Type of inference model. If equal to "SIR", it means we are simulating a SIR model
                 and inferring using the dSIR model
         """
         self.messages = SparseTensor(N, T, contacts)
@@ -35,7 +38,7 @@ class FactorGraph:
         if verbose:
             print("Lambdas matrices created")
 
-        if (mask==["SI"]):
+        if mask == ["SI"]:
             compute_Lambdas(self.Lambda0, self.Lambda1, contacts)
         else:
             compute_Lambdas_dSIR(self.Lambda0, self.Lambda1, contacts, mask)
@@ -51,21 +54,49 @@ class FactorGraph:
             if s_o == 0:
                 self.observations[i_o][: t_o + 1] = 0
             if s_o == 1:
-                if mask == ["SI"]: self.observations[i_o][t_o + 1 :] = 0
+                if mask == ["SI"]:
+                    self.observations[i_o][t_o + 1 :] = 0
                 elif mask_type == "SIR":
-                    obs_mask = np.array([mask[t_o-t-1] if ((t < t_o) and (t_o-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
-                    self.observations[i_o] = self.observations[i_o]*obs_mask
+                    obs_mask = np.array(
+                        [
+                            mask[t_o - t - 1]
+                            if ((t < t_o) and (t_o - t <= len(mask)))
+                            else 0
+                            for t in np.arange(-1, T + 1)
+                        ]
+                    )
+                    self.observations[i_o] = self.observations[i_o] * obs_mask
                 else:
-                    obs_mask = np.array([1 if ((t < t_o) and (t_o-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
-                    self.observations[i_o] = self.observations[i_o]*obs_mask
+                    obs_mask = np.array(
+                        [
+                            1 if ((t < t_o) and (t_o - t <= len(mask))) else 0
+                            for t in np.arange(-1, T + 1)
+                        ]
+                    )
+                    self.observations[i_o] = self.observations[i_o] * obs_mask
             if s_o == 2:
-                if mask == ["SI"]: self.observations[i_o][t_o + 1 :] = 0 #Do as if it were I. Is this the best we can do?
+                if mask == ["SI"]:
+                    self.observations[i_o][
+                        t_o + 1 :
+                    ] = 0  # Do as if it were I. Is this the best we can do?
                 elif mask_type == "SIR":
-                    obs_mask = np.array([1 - mask[t_o-t-1] if ((t < t_o) and (t_o-t <= len(mask))) else 0 for t in np.arange(-1,T+1)])
-                    self.observations[i_o] = self.observations[i_o]*obs_mask
+                    obs_mask = np.array(
+                        [
+                            1 - mask[t_o - t - 1]
+                            if ((t < t_o) and (t_o - t <= len(mask)))
+                            else 0
+                            for t in np.arange(-1, T + 1)
+                        ]
+                    )
+                    self.observations[i_o] = self.observations[i_o] * obs_mask
                 else:
-                    obs_mask = np.array([1 if  (t_o-t > len(mask)) else 0 for t in np.arange(-1,T+1)])
-                    self.observations[i_o] = self.observations[i_o]*obs_mask
+                    obs_mask = np.array(
+                        [
+                            1 if (t_o - t > len(mask)) else 0
+                            for t in np.arange(-1, T + 1)
+                        ]
+                    )
+                    self.observations[i_o] = self.observations[i_o] * obs_mask
 
         if verbose:
             print("Observations array created")
@@ -188,8 +219,12 @@ class FactorGraph:
         norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
         norm_msgs = new_msgs / norm
         if damp > 1e-6:
-            new_damped_msgs = (1-damp) * norm_msgs + damp * old_msgs[self.out_msgs]# Add dumping
-            damped_norm = np.reshape(np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+            new_damped_msgs = (1 - damp) * norm_msgs + damp * old_msgs[
+                self.out_msgs
+            ]  # Add dumping
+            damped_norm = np.reshape(
+                np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
+            )
             norm_msgs = new_damped_msgs / damped_norm
         self.messages.values[self.out_msgs] = norm_msgs
         err_array = np.abs(old_msgs - self.messages.values)
@@ -239,7 +274,7 @@ class FactorGraph:
 
         return difference
 
-    def update(self, maxit=100, tol=1e-6, damp=0., print_iter=None):
+    def update(self, maxit=100, tol=1e-6, damp=0.0, print_iter=None):
         """Multiple iterations of the BP algorithm through the method iterate()
 
         Args:
@@ -251,13 +286,13 @@ class FactorGraph:
             error (float): Error on the messages at the end of the iterations
         """
         i = 0
-        error = 1
-        while i < maxit and error > tol:
-            error = self.iterate(damp)
+        error_mean = 1
+        while i < maxit and error_mean > tol:
+            error_max, error_mean = self.iterate(damp)
             i += 1
             if print_iter != None:
-                print_iter(error, i)
-        return i, error
+                print_iter([error_max, error_mean], i)
+        return i, [error_max, error_mean]
 
     def marginals(self):
         """Computes the array of the BP marginals for each node
@@ -277,8 +312,8 @@ class FactorGraph:
             marg = np.sum(
                 inc_msg * np.transpose(out_msg), axis=0
             )  # transpose outgoing message so index to sum over after broadcasting is 0.
-            #DEBUG CHECK
-            #if (marg.sum()==0):
+            # DEBUG CHECK
+            # if (marg.sum()==0):
             #    print(f"INC{inc_msg}")
             #    print(f"OUT{np.transpose(out_msg)}")
             marginals.append(marg / marg.sum())
