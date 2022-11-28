@@ -127,7 +127,8 @@ class FactorGraph:
         """Single iteration of the Belief Propagation algorithm
 
         Returns:
-            difference (float): Maximum difference between the messages at two consecutive iterations
+            err_max (float): Maximum difference between the messages at two consecutive iterations
+            err_avg (float): Average difference between the messages at two consecutive iterations
         """
         T = self.time
         old_msgs = np.copy(self.messages.values)
@@ -191,9 +192,9 @@ class FactorGraph:
             damped_norm = np.reshape(np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
             norm_msgs = new_damped_msgs / damped_norm
         self.messages.values[self.out_msgs] = norm_msgs
-        difference = np.abs(old_msgs - self.messages.values).max()
+        err_array = np.abs(old_msgs - self.messages.values)
 
-        return difference
+        return err_array.max(), err_array.mean()
 
     def pop_dyn_RRG(self, c=3):
         """Single iteration of the Population dynamics algorithm for a d-RRG
