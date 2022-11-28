@@ -6,7 +6,15 @@ import torch
 class SparseTensor:
     """Class to represent an N x N x T x T sparse tensor as a 2 x num_edges x T x T full tensor"""
 
-    def __init__(self, N=0, T=0, contacts=[], Tensor_to_copy=None):
+    def __init__(
+        self,
+        N=0,
+        T=0,
+        contacts=[],
+        Tensor_to_copy=None,
+        device="cpu",
+        dtype=torch.float,
+    ):
         """Construction of the tensor. If no tensor is given, then calls init(), otherwise calls init_like()
 
         Args:
@@ -16,11 +24,20 @@ class SparseTensor:
             Tensor_to_copy (SparseTensor): SparseTensor to copy to create a new object
         """
         if Tensor_to_copy is None:
-            self.init(N, T, contacts)
+            self.init(N, T, contacts, device=device, dtype=dtype)
         else:
+            self.device = device
+            self.dtype = dtype
             self.init_like(Tensor_to_copy)
 
-    def init(self, N, T, contacts):
+    def init(
+        self,
+        N,
+        T,
+        contacts,
+        device="cpu",
+        dtype=torch.float,
+    ):
         """Initialization of the tensor, given the contacts
 
         Args:
@@ -33,6 +50,8 @@ class SparseTensor:
 
         self.N = N
         self.T = T
+        self.device = device
+        self.dtype = dtype
         contacts = torch.tensor(contacts)
 
         edge_list = torch.unique(
@@ -51,10 +70,18 @@ class SparseTensor:
             c = c + d
 
         self.values = torch.full(
-            (self.num_direct_edges, T + 2, T + 2), 1 / ((T + 2) * (T + 2))
+            (self.num_direct_edges, T + 2, T + 2),
+            1 / ((T + 2) * (T + 2)),
+            device=device,
+            dtype=dtype,
         )
 
-    def init_like(self, Tensor):
+    def init_like(
+        self,
+        Tensor,
+        device="cpu",
+        dtype=torch.float,
+    ):
         """Initialization of the tensor, given another tensor, putting all values to one
 
         Args:
@@ -66,7 +93,12 @@ class SparseTensor:
         self.T = Tensor.T
         self.num_direct_edges = Tensor.num_direct_edges
         self.degree = Tensor.degree
-        self.values = torch.full((self.num_direct_edges, self.T + 2, self.T + 2), 1.0)
+        self.values = torch.full(
+            (self.num_direct_edges, self.T + 2, self.T + 2),
+            1.0,
+            device=device,
+            dtype=dtype,
+        )
 
     def get_idx_ij(self, i, j):
         """Returns index corresponding to the (i, j) entrance of the tensor
@@ -149,7 +181,7 @@ def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full con
     n_dim = Lambda1.values.shape[1]
     a, b = torch.tril_indices(n_dim, n_dim, offset=1)
     Lambda1.values[:, a, b] = 0
-    a, b = torch.tril_indices(n_dim, n_dim, offset=1)
+    a, b = torch.tril_indices(n_dim, n_dim, offset=0)
     Lambda0.values[:, a, b] = 0
 
     # takes 1 - lambdas
@@ -183,9 +215,9 @@ def compute_Lambdas_dSIR(
 
     # fill the lower triangular matrix lambdas with 0
     n_dim = Lambda1.values.shape[1]
-    a, b = torch.tril_indices(n_dim, k=1)
+    a, b = torch.tril_indices(n_dim, offset=1)
     Lambda1.values[:, a, b] = 0
-    a, b = torch.tril_indices(n_dim, k=0)
+    a, b = torch.tril_indices(n_dim, offset=0)
     Lambda0.values[:, a, b] = 0
 
     # Compute and apply the infectivity masks

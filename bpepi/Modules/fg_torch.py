@@ -13,7 +13,17 @@ class FactorGraph:
     """Class to update the BP messages for the SI model"""
 
     def __init__(
-        self, N, T, contacts, obs, delta, mask=["SI"], mask_type="SI", verbose=False
+        self,
+        N,
+        T,
+        contacts,
+        obs,
+        delta,
+        mask=["SI"],
+        mask_type="SI",
+        verbose=False,
+        device="cpu",
+        dtype=torch.float,
     ):
         """Construction of the FactorGraph object, starting from contacts and observations
 
@@ -28,7 +38,7 @@ class FactorGraph:
             mask_type (string): Type of inference model. If equal to "SIR", it means we are simulating a SIR model
                 and inferring using the dSIR model
         """
-        self.messages = SparseTensor(N, T, contacts)
+        self.messages = SparseTensor(N, T, contacts, device=device, dtype=dtype)
         if verbose:
             print("Messages matrices created")
 
@@ -37,10 +47,15 @@ class FactorGraph:
         self.delta = delta
         self.contacts = contacts
 
+        self.device = device
+        self.dtype = dtype
+
         self.Lambda0 = SparseTensor(
-            Tensor_to_copy=self.messages
+            Tensor_to_copy=self.messages, device=device, dtype=dtype
         )  # messages only depend on lambda through Lambda matrices.
-        self.Lambda1 = SparseTensor(Tensor_to_copy=self.messages)
+        self.Lambda1 = SparseTensor(
+            Tensor_to_copy=self.messages, device=device, dtype=dtype
+        )
 
         if verbose:
             print("Lambdas matrices created")
@@ -108,10 +123,10 @@ class FactorGraph:
         if verbose:
             print("Observations array created")
 
-        self.out_msgs = torch.tensor([], dtype=torch.int)
-        self.inc_msgs = torch.tensor([], dtype=torch.int)
+        self.out_msgs = torch.tensor([], dtype=torch.int, device=device)
+        self.inc_msgs = torch.tensor([], dtype=torch.int, device=device)
         self.repeat_deg = []
-        self.obs_i = torch.tensor([], dtype=torch.int)
+        self.obs_i = torch.tensor([], dtype=torch.int, device=device)
 
         for i in range(len(self.messages.idx_list)):
             # add messages incoming to node i to self.inc_msgs
@@ -128,9 +143,10 @@ class FactorGraph:
                 self.out_msgs = torch.concat(
                     (self.out_msgs, self.messages.idx_list[k][jnd]), axis=0
                 )
-        self.repeat_deg = torch.tensor(self.repeat_deg, dtype=torch.int)
-        self.reduce_idxs = delete(torch.cumsum(self.repeat_deg, -1), -1, -1)
-        self.reduce_idxs = torch.concat((torch.tensor([0]), self.reduce_idxs), axis=0)
+        self.repeat_deg = torch.tensor(self.repeat_deg, dtype=torch.int, device=device)
+        self.reduce_idxs = torch.arange(
+            len(self.repeat_deg), device=device
+        ).repeat_interleave(self.repeat_deg)
 
         if verbose:
             print("Lists of neighbors created")
@@ -156,8 +172,11 @@ class FactorGraph:
         arr[arr == 0] = epsilon
         arr_2 = torch.log(arr)
         arr_copy = torch.clone(arr_2)
-        arr_3 = torch.INDEX_ADD_(arr_2, reduce_idxs, axis=0)
-        arr_4 = torch.repeat(arr_3, repeat_deg, axis=0)
+        size = list(arr.size())
+        size[0] = self.size
+        arr_3 = torch.zeros(size, device=self.device, dtype=self.dtype)
+        arr_3.index_add_(0, reduce_idxs, arr_2)
+        arr_4 = torch.repeat_interleave(arr_3, repeat_deg, dim=0)
         arr_5 = torch.exp(arr_4 - arr_copy)
         return arr_5
 
@@ -171,12 +190,21 @@ class FactorGraph:
         old_msgs = torch.clone(self.messages.values)
         msgs_tilde = old_msgs[self.inc_msgs]
 
+        # print(msgs_tilde)
+        # print(self.Lambda0_tilde)
+
         # calculate gamma matrices
         gamma0_hat = torch.sum(msgs_tilde * self.Lambda0_tilde, dim=1, keepdim=True)
         gamma1_hat = torch.sum(msgs_tilde * self.Lambda1_tilde, dim=1, keepdim=True)
+        # print("GAMMA HAT")
+        # print(gamma0_hat)
+        # print("END GAMMA HAT")
+
         gamma0 = self.get_gamma(gamma0_hat, self.reduce_idxs, self.repeat_deg)
         gamma1 = self.get_gamma(gamma1_hat, self.reduce_idxs, self.repeat_deg)
-
+        # print("GAMMA")
+        # print(gamma0)
+        # print("END GAMMA")
         # calculate part one of update
         one_obs = (1 - self.delta) * torch.reshape(
             self.observations[self.obs_i], (len(self.out_msgs), 1, T + 2)
@@ -187,7 +215,7 @@ class FactorGraph:
         one_main = torch.clip(
             self.Lambda1_tilde * gamma1 - self.Lambda0_tilde * gamma0, 0, 1
         )
-        one = torch.transpose(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
+        one = torch.permute(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
 
         # calculate part two of update
         two_obs = self.delta * self.observations[self.obs_i][:, 0]
@@ -195,7 +223,7 @@ class FactorGraph:
         two_main = self.get_gamma(two_msgs, self.reduce_idxs, self.repeat_deg)
         two = torch.reshape(
             torch.tile(
-                torch.reshape(two_obs * two_main, (len(self.out_msgs), 1)), T + 2
+                torch.reshape(two_obs * two_main, (len(self.out_msgs), 1)), (1, T + 2)
             ),
             (len(self.out_msgs), 1, T + 2),
         )
@@ -211,18 +239,39 @@ class FactorGraph:
         # update the message values
         update_one = torch.concat(
             (
-                torch.zeros((len(self.out_msgs), 1, T + 2)),
+                torch.zeros(
+                    (len(self.out_msgs), 1, T + 2), device=self.device, dtype=self.dtype
+                ),
                 one,
-                torch.zeros((len(self.out_msgs), 1, T + 2)),
+                torch.zeros(
+                    (len(self.out_msgs), 1, T + 2), device=self.device, dtype=self.dtype
+                ),
             ),
             axis=1,
         )
         update_two = torch.concat(
-            (two, torch.zeros((len(self.out_msgs), T + 1, T + 2))), axis=1
+            (
+                two,
+                torch.zeros(
+                    (len(self.out_msgs), T + 1, T + 2),
+                    device=self.device,
+                    dtype=self.dtype,
+                ),
+            ),
+            axis=1,
         )
         update_three = torch.concat(
-            (torch.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
+            (
+                torch.zeros(
+                    (len(self.out_msgs), T + 1, T + 2),
+                    device=self.device,
+                    dtype=self.dtype,
+                ),
+                three,
+            ),
+            axis=1,
         )
+        # print(update_one, update_two, update_three)
         new_msgs = update_one + update_two + update_three
         new_damped_msgs = (1 - damp) * new_msgs + damp * old_msgs[
             self.out_msgs
@@ -307,7 +356,9 @@ class FactorGraph:
             marginals (torch.tensor): Array of the BP marginals, of shape N x (T+2)
         """
 
-        marginals = []
+        marginals = torch.zeros(
+            (self.size, self.time + 2), device=self.device, dtype=self.dtype
+        )
         # we have one marginal (Tx1 vector) for each node.
         for n in range(self.size):  # loop through all nodes
             inc_indices, out_indices = self.messages.get_all_indices(n)
@@ -316,14 +367,14 @@ class FactorGraph:
             ]  # b_i(t_i) is the same regardless of which non directed edge (ij), j \in\partial i we pick, so long as we sum over j.
             out_msg = self.messages.values[out_indices[0]]
             marg = torch.sum(
-                inc_msg * torch.transpose(out_msg), axis=0
+                inc_msg * torch.t(out_msg), dim=0
             )  # transpose outgoing message so index to sum over after broadcasting is 0.
             # DEBUG CHECK
             # if (marg.sum()==0):
             #    print(f"INC{inc_msg}")
             #    print(f"OUT{torch.transpose(out_msg)}")
-            marginals.append(marg / marg.sum())
-        return torch.tensor(marginals)
+            marginals[n, :] = marg / marg.sum()
+        return marginals
 
     def loglikelihood(self):
         """Computes the LogLikelihood from the BP messages
