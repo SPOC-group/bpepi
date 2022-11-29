@@ -19,13 +19,13 @@ from bpepi.Modules import fg as fg
 
 
 def print_iter(err, it):
-    print(f"\r err:{err[0]:.2}, err:{err[1]:.2}, it:{it}", end="")
+    print(f"err:{err[0]:.2}, err:{err[1]:.2}, it:{it}")
 
 
 def create_fg(
     N=1, T=10, contacts=[], obs=[], delta=0.1, mask=[], mask_type=None, torch=False
 ):
-    if torch:
+    if torch != 0:
         return fg_t.FactorGraph(
             N=N,
             T=T,
@@ -243,7 +243,7 @@ def main():
     )
     parser.add_argument(
         "--snap_time",
-        type=int,
+        type=float,
         default=-1,
         help="Time at which taking the snapshot. Random by default",
     )
@@ -308,8 +308,8 @@ def main():
     )
     parser.add_argument(
         "--pytorch",
-        type=bool,
-        default=False,
+        type=int,
+        default=0,
         help="Using pytorch backend otherwise use numpy. Default False.",
     )
     group_i = parser.add_mutually_exclusive_group(required=True)

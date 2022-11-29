@@ -384,7 +384,7 @@ class FactorGraph:
             #    print(f"INC{inc_msg}")
             #    print(f"OUT{torch.transpose(out_msg)}")
             marginals[n, :] = marg / marg.sum()
-        return marginals
+        return marginals.numpy()
 
     def loglikelihood(self):
         """Computes the LogLikelihood from the BP messages
@@ -410,7 +410,7 @@ class FactorGraph:
                 torch.prod(torch.sum(inc_lambda1 * inc_msgs, axis=1), axis=0),
                 (1, T + 2),
             )
-            dummy_array = torch.transpose(
+            dummy_array = torch.t(
                 (
                     (1 - self.delta)
                     * torch.reshape(self.observations[i], (1, T + 2))
@@ -422,7 +422,7 @@ class FactorGraph:
                 * self.observations[i][0]
                 * torch.prod(torch.sum(inc_msgs[:, :, 0], axis=1), axis=0)
             )
-            dummy_array[T + 1] = torch.transpose(
+            dummy_array[T + 1] = torch.t(
                 (1 - self.delta) * self.observations[i][T + 1] * gamma1_ki[0][T + 1]
             )
             log_zi = log_zi + torch.log(dummy_array.sum())
@@ -437,7 +437,7 @@ class FactorGraph:
                 ]  # b_i(t_i) is the same regardless of which non directed edge (ij), j \in\partial i we pick, so long as we sum over j.
                 out_msg = self.messages.values[out_indices[j]]
                 marg = torch.sum(
-                    inc_msg * torch.transpose(out_msg), axis=0
+                    inc_msg * torch.t(out_msg), axis=0
                 )  # transpose outgoing message so index to sum over after broadcasting is 0.
                 log_zij = log_zij + torch.log(marg.sum())
         return log_zi - 0.5 * log_zij

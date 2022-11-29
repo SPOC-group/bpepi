@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import networkx as nx
+import math
 
 def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100):
     """Function to simulate an epidemic using the deterministic-SIR model
@@ -154,17 +155,14 @@ def generate_contacts(G, T, lambda_, p_edge=1):
                 contacts.append((e[1], e[0], t, lambda_))
     return contacts
 
-def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
+def generate_snapshot_obs_old(conf, o_type="rho", M=0.0, snap_time=-1):
     """Function to generate a snapshot observation, given an epidemic simulation
 
     Args:
         conf (array): array of shape (T+1) x N contaning the states of all the nodes from time 0 to time T
         o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
             M (int/float): number of observed nodes/probability of being randomly observed 
-        snap_time (int): time at which to take the snapshot. If not specified, this is a random int between 0 and T. If the the time is not int, 
-            we use the following formula: t1=flor(T), p=T-t1, and we extract with probability (1-p) observations at time t1 and with probability p at time t1+1. 
-            On average we have observations at time T. 
-
+        snap_time (int): time at which to take the snapshot. If not specified, this is a random int between 0 and T. 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
         fS (float): fraction of susceptible nodes when taking the tests
@@ -192,10 +190,72 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
         else: 
             obs_list = random.sample(range(N), M)
             obs_sim = [ (i, conf[T,i], snap_time) for i in range(N) if i in obs_list]
-    t1 = np.floor(T)
-    pp = T-t1
-    obs_sim = [(i,s,t1+1) if np.random.random() < pp else (i,s,t1) for i,s,tt in obs_sim]
     return obs_sim, fS, fI, snap_time
+
+def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
+    """Function to generate a snapshot observation, given an epidemic simulation
+
+    Args:
+        conf (array): array of shape (T+1) x N contaning the states of all the nodes from time 0 to time T
+        o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
+            M (int/float): number of observed nodes/probability of being randomly observed 
+        snap_time (int): time at which to take the snapshot. If not specified, this is a random int between 0 and T. If the the time is not int, 
+            we use the following formula: t1=flor(T), p=T-t1, and we extract with probability (1-p) observations at time t1 and with probability p at time t1+1. 
+            On average we have observations at time T. 
+
+    Returns:
+        obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
+        fS (float): fraction of susceptible nodes when taking the tests
+        fI (float): fraction of infected nodes when taking the tests
+        tS (int): random time at which the tests were taken
+    """
+    N = len(conf[0])
+    T = len(conf) - 1
+    if snap_time > T:
+        print("warning snap_time > T, observation at T")
+
+    obs_sim = []
+    if snap_time == -1: snap_time = random.choice(range(T+1))
+    #elif snap_time > T: snap_time = T
+    t1 = math.floor(snap_time)
+    t2 = math.ceil(snap_time)
+    pp = snap_time-t1
+
+    if snap_time <= T:
+        fS1 = np.count_nonzero(conf[t1] == 0)/N
+        fS2 = np.count_nonzero(conf[t2] == 0)/N
+        fI1 = np.count_nonzero(conf[t1] == 1)/N
+        fI2 = np.count_nonzero(conf[t2] == 1)/N
+        fS = (1-pp) * fS1 + pp * fS2
+        fI = (1-pp) * fI1 + pp * fI2
+        if o_type == "rho":
+            all_nodes = np.random.permutation(N)
+            nodes1 = all_nodes[:int(N*(1-pp))]
+            nodes2 = all_nodes[int(N*(1-pp)):]
+            obs_sim = [ (i, conf[t1,i], t1) for i in nodes1 if np.random.random() < M]
+            obs_sim.extend([ (i, conf[t2,i], t2) for i in nodes2 if np.random.random() < M])
+        else: 
+            obs_list = random.sample(range(N), M)
+            nodes1 = obs_list[:int(M*(1-pp))]
+            nodes2 = obs_list[int(M*(1-pp)):]
+            obs_sim = [ (i, conf[t1,i], t1) for i in nodes1]
+            obs_sim.extend([ (i, conf[t2,i], t2) for i in nodes2])
+    else:
+        fS = np.count_nonzero(conf[T] == 0)/N
+        fI = np.count_nonzero(conf[T] == 1)/N
+        if o_type == "rho":
+            all_nodes = np.random.permutation(N)
+            nodes1 = all_nodes[:int(N*(1-pp))]
+            nodes2 = all_nodes[int(N*(1-pp)):]
+            obs_sim = [ (i, conf[T,i], t1) for i in nodes1 if np.random.random() < M]
+            obs_sim.extend([ (i, conf[T,i], t2) for i in nodes2 if np.random.random() < M])
+        else: 
+            obs_list = random.sample(range(N), M)
+            nodes1 = obs_list[:int(M*(1-pp))]
+            nodes2 = obs_list[int(M*(1-pp)):]
+            obs_sim = [ (i, conf[T,i], t1) for i in nodes1]
+            obs_sim.extend([ (i, conf[T,i], t2) for i in nodes2])
+    return obs_sim, fS, fI, t2
 
 def generate_sensors_obs(conf, o_type="rho", M=0.0):
     """Function to generate a list of observations of a certain fraction of nodes, given an epidemic simulation
