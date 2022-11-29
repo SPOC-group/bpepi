@@ -532,7 +532,7 @@ def main():
 
                             if save_marginals :
                                 with lzma.open(save_dir + file_name, "wb") as f:
-                                    pickle.dump(saveObj2, f)
+                                    pickle.dump([saveObj1,saveObj2], f)
                             dict_list = dict_list + data_to_dict(saveObj1,saveObj2, init_type)
     data_frame = pd.DataFrame(dict_list)
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
