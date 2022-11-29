@@ -160,8 +160,10 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
     Args:
         conf (array): array of shape (T+1) x N contaning the states of all the nodes from time 0 to time T
         o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
-        M (int/float): number of observed nodes/probability of being randomly observed 
-        snap_time (int): time at which to take the snapshot. If not specified, this is a random int between 0 and T
+            M (int/float): number of observed nodes/probability of being randomly observed 
+        snap_time (int): time at which to take the snapshot. If not specified, this is a random int between 0 and T. If the the time is not int, 
+            we use the following formula: t1=flor(T), p=T-t1, and we extract with probability (1-p) observations at time t1 and with probability p at time t1+1. 
+            On average we have observations at time T. 
 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
@@ -190,7 +192,9 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
         else: 
             obs_list = random.sample(range(N), M)
             obs_sim = [ (i, conf[T,i], snap_time) for i in range(N) if i in obs_list]
-    
+    t1 = np.floor(T)
+    pp = T-t1
+    obs_sim = [(i,s,t1+1) if np.random.random() < pp else (i,s,t1) for i,s,tt in obs_sim]
     return obs_sim, fS, fI, snap_time
 
 def generate_sensors_obs(conf, o_type="rho", M=0.0):
