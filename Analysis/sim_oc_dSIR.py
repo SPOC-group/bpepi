@@ -1,12 +1,10 @@
-#import pandas as pd
+# import pandas as pd
 import numpy as np
 import networkx as nx
 import random
 import pandas as pd
 
 from gen import *
-from bpepi.Modules.st import *
-from bpepi.Modules.fg import *
 from XZtoDF import data_to_dict
 
 import sys
@@ -16,65 +14,93 @@ import pickle
 from pathlib import Path
 import argparse
 import warnings
+from bpepi.Modules import fg_torch as fg_t
+from bpepi.Modules import fg as fg
 
-def BPloop(
-    f,
-    list_obs,
-    n_iter,
-    tol,
-    print_it,
-    iter_space,
-    tol2,
-    it_max,
-    init,
-    damp
+
+def print_iter(err, it):
+    print(f"\r err:{err[0]:.2}, err:{err[1]:.2}, it:{it}", end="")
+
+
+def create_fg(
+    N=1, T=10, contacts=[], obs=[], delta=0.1, mask=[], mask_type=None, torch=False
 ):
-    #Initialization
+    if torch:
+        return fg_t.FactorGraph(
+            N=N,
+            T=T,
+            contacts=contacts,
+            obs=obs,
+            delta=delta,
+            mask=mask,
+            mask_type=mask_type,
+        )
+    else:
+        return fg.FactorGraph(
+            N=N,
+            T=T,
+            contacts=contacts,
+            obs=obs,
+            delta=delta,
+            mask=mask,
+            mask_type=mask_type,
+        )
+
+
+def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, damp):
+    # Initialization
+
+    print_space = 1
     if init == 1:
         for it in range(n_iter):
             e0_max, e0_ave = f.iterate(damp)
+            if it % print_space == 0:
+                print_iter([e0_max, e0_ave], it)
             if e0_ave < tol:
                 break
         if e0_ave > tol:
             warnings.warn("Warning... Initialization is not converging")
         f.reset_obs(list_obs)
-
-    err_space=10
+    print("ended init")
+    err_space = 10
     e_max = np.nan
     e_ave = np.nan
     err_list = []
-    #BP iteration
+    # BP iteration
     if print_it:
-        marg_list=[f.marginals()]
-        it_list=[0]
-        e_list=[e_ave]
+        marg_list = [f.marginals()]
+        it_list = [0]
+        e_list = [e_ave]
         logL_list = [f.loglikelihood()]
-    for it in np.arange(1,n_iter+1):
-        e_max, e_ave = f.iterate(damp=0.)
-        if print_it and (
-            (it % iter_space == 0) or (e_ave < tol) or (it == n_iter)
-        ):
+    for it in np.arange(1, n_iter + 1):
+        e_max, e_ave = f.iterate(damp=0.0)
+        if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == n_iter)):
             marg_list.append(f.marginals())
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
-        if (it % err_space == 0) : 
-            err_list.append([it,e_max,e_ave])
+        if it % err_space == 0:
+            err_list.append([it, e_max, e_ave])
+        if it % print_space == 0:
+            print_iter([e_max, e_ave], it)
         if e_ave < tol:
             break
     if e_ave < tol2:
-        while (e_ave > tol):
+        while e_ave > tol:
             it = it + 1
-            e_max, e_ave = f.iterate(damp=0.)
+            e_max, e_ave = f.iterate(damp=0.0)
             if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
                 marg_list.append(f.marginals())
                 it_list.append(it)
                 e_list.append(e_ave)
                 logL_list.append(f.loglikelihood())
-            if (it % err_space == 0) : err_list.append([it,e_max,e_ave])
-            if it == n_iter*2:
+            if it % err_space == 0:
+                err_list.append([it, e_max, e_ave])
+            if it % print_space == 0:
+                print_iter([e_max, e_ave], it)
+            if it == n_iter * 2:
                 break
-    while (e_ave > tol):
+    while e_ave > tol:
         it = it + 1
         e_max, e_ave = f.iterate(damp=damp)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
@@ -82,29 +108,37 @@ def BPloop(
             it_list.append(it)
             e_list.append(e)
             logL_list.append(f.loglikelihood())
-        if (it % err_space == 0) : err_list.append([it,e_max,e_ave])
-        if it == n_iter*3:
+        if it % err_space == 0:
+            err_list.append([it, e_max, e_ave])
+        if it % print_space == 0:
+            print_iter([e_max, e_ave], it)
+        if it == n_iter * 3:
             break
-    while (e_ave > tol):
+    while e_ave > tol:
         it = it + 1
-        e_max, e_ave = f.iterate(damp=damp*2)
+        e_max, e_ave = f.iterate(damp=damp * 2)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
             marg_list.append(f.marginals())
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
-        if (it % err_space == 0) : err_list.append([it,e_max,e_ave])
+        if it % err_space == 0:
+            err_list.append([it, e_max, e_ave])
+        if it % print_space == 0:
+            print_iter([e_max, e_ave], it)
         if it == it_max:
             break
-    
-    if not print_it : 
+
+    if not print_it:
         marg_list = [f.marginals()]
         it_list = [it]
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
-    if it != it_max : err_list.append([it,e_max,e_ave])
+    if it != it_max:
+        err_list.append([it, e_max, e_ave])
 
     return marg_list, e_list, it_list, logL_list, err_list
+
 
 def main():
     parser = argparse.ArgumentParser(description="Compute marginals using BPEpI")
@@ -126,18 +160,12 @@ def main():
         default="data",
         help="name of the file in which the marginals will be saved",
     )
-    parser.add_argument(
-        "--graph", type=str, default="rrg", help="Type of random graph"
-    )
+    parser.add_argument("--graph", type=str, default="rrg", help="Type of random graph")
     parser.add_argument(
         "--N", type=int, default=10000, help="Number of individuals", nargs="+"
     )
-    parser.add_argument(
-        "--d", type=int, default=3, help="degree of RRG", nargs="+"
-    )
-    parser.add_argument(
-        "--lam", type=float, default=1.0, help="lambda", nargs="+"
-    )
+    parser.add_argument("--d", type=int, default=3, help="degree of RRG", nargs="+")
+    parser.add_argument("--lam", type=float, default=1.0, help="lambda", nargs="+")
     group_s = parser.add_mutually_exclusive_group(required=True)
     group_s.add_argument(
         "--n_sources",
@@ -168,9 +196,7 @@ def main():
         help="fraction of observations, pass as multiple arguments, e.g. 0.1 0.3 0.5",
         nargs="+",
     )
-    parser.add_argument(
-        "--nsim", type=int, default=25, help="number of simulations"
-    )
+    parser.add_argument("--nsim", type=int, default=25, help="number of simulations")
     parser.add_argument(
         "--print_it",
         action="store_true",
@@ -189,7 +215,10 @@ def main():
         help="seed for the number generators",
     )
     parser.add_argument(
-        "--tol", type=float, default=1e-6, help="Tolerance of the difference between marginals to stop BP "
+        "--tol",
+        type=float,
+        default=1e-6,
+        help="Tolerance of the difference between marginals to stop BP ",
     )
     parser.add_argument(
         "--n_iter",
@@ -201,14 +230,14 @@ def main():
     group_ot.add_argument(
         "--sens",
         action="store_const",
-        const='sensors',
+        const="sensors",
         dest="obs_type",
         help="Snapshot observation",
     )
     group_ot.add_argument(
         "--snap",
         action="store_const",
-        const='snapshot',
+        const="snapshot",
         dest="obs_type",
         help="Snapshot observation",
     )
@@ -240,7 +269,7 @@ def main():
     group_d.add_argument(
         "--mask",
         type=float,
-        default=1.,
+        default=1.0,
         help="Mask array",
         nargs="+",
     )
@@ -250,10 +279,16 @@ def main():
         help="Set the mask array in order to simulate SI model",
     )
     parser.add_argument(
-        "--tol2", type=float, default=1e-3, help="Tolerance of the difference between marginals to stop BP for the second part "
+        "--tol2",
+        type=float,
+        default=1e-3,
+        help="Tolerance of the difference between marginals to stop BP for the second part ",
     )
     parser.add_argument(
-        "--it_max", type=int, default=50000, help="Max number of iterations of the algorithm, after the first threshold "
+        "--it_max",
+        type=int,
+        default=50000,
+        help="Max number of iterations of the algorithm, after the first threshold ",
     )
     parser.add_argument(
         "--save_marginals",
@@ -266,7 +301,16 @@ def main():
         help="If true, simulates a conventional SIR model",
     )
     parser.add_argument(
-        "--damping", type=float, default=0., help="Damping factor for the BP iterations. Needs to be smaller than 0.5. Default: 0"
+        "--damping",
+        type=float,
+        default=0.0,
+        help="Damping factor for the BP iterations. Needs to be smaller than 0.5. Default: 0",
+    )
+    parser.add_argument(
+        "--pytorch",
+        type=bool,
+        default=False,
+        help="Using pytorch backend otherwise use numpy. Default False.",
     )
     group_i = parser.add_mutually_exclusive_group(required=True)
     group_i.add_argument(
@@ -304,19 +348,27 @@ def main():
         warnings.warn("SAVING FOLDER DOES NOT EXIST")
     graph = args.graph
     if graph == "rrg":
+
         def generate_graph(N, d):
             return nx.random_regular_graph(n=N, d=d)
+
     elif graph == "tree":
+
         def generate_graph(N, d):
             return nx.full_rary_tree(r=d, n=N)
+
     elif graph == "path":
+
         def generate_graph(N, d):
             return nx.path_graph(n=N)
+
     elif graph == "closed_path":
+
         def generate_graph(N, d):
             G = nx.path_graph(n=N)
-            G.add_edge(N-1,0)       
+            G.add_edge(N - 1, 0)
             return G
+
     else:
         warnings.warn("GRAPH TYPE NOT ALLOWED")
     N_table = args.N
@@ -342,19 +394,19 @@ def main():
     np.random.seed(seed)
     tol = args.tol
     n_iter = args.n_iter
-    T_max=args.T_max
-    mu=0
+    T_max = args.T_max
+    mu = 0
     if args.SI == True:
         mask = ["SI"]
         Delta = T_max + 1
         mask_type = "SI"
     elif args.Delta != -1:
-        mask=[1]*args.Delta
+        mask = [1] * args.Delta
         Delta = args.Delta
         mask_type = "dSIR_one"
     elif args.mu != -1:
         mu = args.mu
-        mask = [(1-mu)**i for i in range(T_max+1)]
+        mask = [(1 - mu) ** i for i in range(T_max + 1)]
         Delta = T_max + 1
         mask_type = "dSIR_exp"
     else:
@@ -365,7 +417,7 @@ def main():
     it_max = args.it_max
     save_marginals = args.save_marginals
     SIR_sim = args.SIR_sim
-    damp=args.damping
+    damp = args.damping
 
     dict_list = []
     t1 = time.time()
@@ -377,35 +429,67 @@ def main():
                     for i_M, M in enumerate(obs_table):
                         for sim in range(n_sim):
                             if len(np.shape(args.delta)) == 0:
-                                pseed=S/N
-                            else: pseed=S
+                                pseed = S / N
+                            else:
+                                pseed = S
                             G = generate_graph(N=N, d=d)
-                            for (u,v) in G.edges():
-                                G.edges[u,v]['lambda'] = lam
-                            if SIR_sim == True: 
+                            for (u, v) in G.edges():
+                                G.edges[u, v]["lambda"] = lam
+                            if SIR_sim == True:
                                 mask_type = "SIR"
-                                ground_truth = simulate_one_SIR(G, s_type=s_type, S = S, mu=mu, T_max=T_max)
-                            else: ground_truth = simulate_one_detSIR(G, s_type=s_type, S = S, mask = mask, T_max=T_max)
-                            if len(ground_truth) > T_max : 
-                                warnings.warn("The simulation exeeds the maximum time limit!")
+                                ground_truth = simulate_one_SIR(
+                                    G, s_type=s_type, S=S, mu=mu, T_max=T_max
+                                )
+                            else:
+                                ground_truth = simulate_one_detSIR(
+                                    G, s_type=s_type, S=S, mask=mask, T_max=T_max
+                                )
+                            if len(ground_truth) > T_max:
+                                warnings.warn(
+                                    "The simulation exeeds the maximum time limit!"
+                                )
                                 sys.exit()
                             T = len(ground_truth) - 1
                             if args.obs_type == "sensors":
-                                list_obs = generate_sensors_obs(ground_truth, o_type=o_type, M=M)
-                                list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
-                                fS = np.mean(ground_truth[-1]==0)
-                                fI = np.mean(ground_truth[-1]==1)
-                                TO=T
-                            else:
-                                list_obs, fS, fI, TO = generate_snapshot_obs(ground_truth, o_type=o_type, M=M, snap_time=args.snap_time)
-                                list_obs_all = generate_sensors_obs(ground_truth, o_type="rho", M=1)
-                            T_BP=max(TO,T)
-                            contacts = generate_contacts(G, T_BP, lam)
-                            if ( (args.rnd_init == True) or (args.rnd_inf_init == True)):
-                                f_rnd = FactorGraph(
-                                    N=N, T=T_BP, contacts=contacts, obs=[], delta=pseed, mask=mask, mask_type=mask_type
+                                list_obs = generate_sensors_obs(
+                                    ground_truth, o_type=o_type, M=M
                                 )
-                                marg_list_rnd, eR_list, itR_list, logLR_list, errR_list = BPloop(
+                                list_obs_all = generate_sensors_obs(
+                                    ground_truth, o_type="rho", M=1
+                                )
+                                fS = np.mean(ground_truth[-1] == 0)
+                                fI = np.mean(ground_truth[-1] == 1)
+                                TO = T
+                            else:
+                                list_obs, fS, fI, TO = generate_snapshot_obs(
+                                    ground_truth,
+                                    o_type=o_type,
+                                    M=M,
+                                    snap_time=args.snap_time,
+                                )
+                                list_obs_all = generate_sensors_obs(
+                                    ground_truth, o_type="rho", M=1
+                                )
+                            T_BP = max(TO, T)
+                            contacts = generate_contacts(G, T_BP, lam)
+                            if (args.rnd_init == True) or (args.rnd_inf_init == True):
+                                f_rnd = create_fg(
+                                    N=N,
+                                    T=T_BP,
+                                    contacts=contacts,
+                                    obs=[],
+                                    delta=pseed,
+                                    mask=mask,
+                                    mask_type=mask_type,
+                                    torch=args.pytorch,
+                                )
+                                (
+                                    marg_list_rnd,
+                                    eR_list,
+                                    itR_list,
+                                    logLR_list,
+                                    errR_list,
+                                ) = BPloop(
                                     f_rnd,
                                     list_obs,
                                     n_iter,
@@ -415,13 +499,26 @@ def main():
                                     tol2,
                                     it_max,
                                     init=1,
-                                    damp=damp
+                                    damp=damp,
                                 )
-                            if ( (args.inf_init == True) or (args.rnd_inf_init == True)):
-                                f_informed = FactorGraph(
-                                    N=N, T=T_BP, contacts=contacts, obs=list_obs_all, delta=pseed, mask=mask, mask_type=mask_type
+                            if (args.inf_init == True) or (args.rnd_inf_init == True):
+                                f_informed = create_fg(
+                                    N=N,
+                                    T=T_BP,
+                                    contacts=contacts,
+                                    obs=list_obs_all,
+                                    delta=pseed,
+                                    mask=mask,
+                                    mask_type=mask_type,
+                                    torch=args.pytorch,
                                 )
-                                marg_list_inf, eI_list, itI_list, logLI_list, errI_list = BPloop(
+                                (
+                                    marg_list_inf,
+                                    eI_list,
+                                    itI_list,
+                                    logLI_list,
+                                    errI_list,
+                                ) = BPloop(
                                     f_informed,
                                     list_obs,
                                     n_iter,
@@ -431,13 +528,26 @@ def main():
                                     tol2,
                                     it_max,
                                     init=1,
-                                    damp=damp
+                                    damp=damp,
                                 )
-                            if (args.unif_init == True):
-                                f_unif = FactorGraph(
-                                    N=N, T=T_BP, contacts=contacts, obs=list_obs, delta=pseed, mask=mask, mask_type=mask_type
+                            if args.unif_init == True:
+                                f_unif = create_fg(
+                                    N=N,
+                                    T=T_BP,
+                                    contacts=contacts,
+                                    obs=list_obs,
+                                    delta=pseed,
+                                    mask=mask,
+                                    mask_type=mask_type,
+                                    torch=args.pytorch,
                                 )
-                                marg_list_unif, eU_list, itU_list, logLU_list, errU_list = BPloop(
+                                (
+                                    marg_list_unif,
+                                    eU_list,
+                                    itU_list,
+                                    logLU_list,
+                                    errU_list,
+                                ) = BPloop(
                                     f_unif,
                                     list_obs,
                                     n_iter,
@@ -447,18 +557,25 @@ def main():
                                     tol2,
                                     it_max,
                                     init=0,
-                                    damp=damp
+                                    damp=damp,
                                 )
                             print(
                                 f"\r N: {i_N+1}/{len(N_table)} - d: {i_d+1}/{len(d_table)} - lam: {i_l+1}/{len(lam_table)} - S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
                             )
                             t2 = time.time()
-                            timestr = "_" +time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
-                            if print_it : file_name = "IT_" + args.file_name + timestr + ".xz"  
-                            else : file_name = args.file_name + timestr + ".xz"  
+                            timestr = (
+                                "_"
+                                + time.strftime("%Y%m%d-%H%M%S")
+                                + "_"
+                                + str(random.randint(1, 1000))
+                            )
+                            if print_it:
+                                file_name = "IT_" + args.file_name + timestr + ".xz"
+                            else:
+                                file_name = args.file_name + timestr + ".xz"
 
                             saveObj1 = (
-                                graph, 
+                                graph,
                                 N,
                                 d,
                                 lam,
@@ -486,30 +603,30 @@ def main():
                                 fI,
                                 TO,
                                 Delta,
-                                damp
+                                damp,
                             )
-                            if (args.rnd_init == True):
-                                init_type=0
+                            if args.rnd_init == True:
+                                init_type = 0
                                 saveObj2 = (
-                                    marg_list_rnd, 
+                                    marg_list_rnd,
                                     eR_list,
                                     itR_list,
                                     logLR_list,
-                                    errR_list
+                                    errR_list,
                                 )
-                            if (args.inf_init == True):
-                                init_type=1
+                            if args.inf_init == True:
+                                init_type = 1
                                 saveObj2 = (
                                     marg_list_inf,
                                     eI_list,
                                     itI_list,
                                     logLI_list,
-                                    errI_list
+                                    errI_list,
                                 )
-                            if (args.rnd_inf_init == True):
-                                init_type=2
+                            if args.rnd_inf_init == True:
+                                init_type = 2
                                 saveObj2 = (
-                                    marg_list_rnd, 
+                                    marg_list_rnd,
                                     marg_list_inf,
                                     eR_list,
                                     eI_list,
@@ -520,26 +637,31 @@ def main():
                                     errR_list,
                                     errI_list,
                                 )
-                            if (args.unif_init == True):
-                                init_type=3
+                            if args.unif_init == True:
+                                init_type = 3
                                 saveObj2 = (
                                     marg_list_unif,
                                     eU_list,
                                     itU_list,
                                     logLU_list,
-                                    errU_list
+                                    errU_list,
                                 )
 
-                            if save_marginals :
+                            if save_marginals:
                                 with lzma.open(save_dir + file_name, "wb") as f:
                                     pickle.dump(saveObj2, f)
-                            dict_list = dict_list + data_to_dict(saveObj1,saveObj2, init_type)
+                            dict_list = dict_list + data_to_dict(
+                                saveObj1, saveObj2, init_type
+                            )
     data_frame = pd.DataFrame(dict_list)
-    timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1,1000))
-    if print_it : file_name = "DF_IT_" + timestr + ".xz"  
-    else : file_name = "DF_" + timestr + ".xz" 
+    timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1, 1000))
+    if print_it:
+        file_name = "DF_IT_" + timestr + ".xz"
+    else:
+        file_name = "DF_" + timestr + ".xz"
     with lzma.open(save_DF_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
+
 
 if __name__ == "__main__":
     main()
