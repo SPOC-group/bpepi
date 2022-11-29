@@ -7,7 +7,7 @@ setup(
     install_requires=[
         "numpy",
         "networkx",
-        "pytorch",
+        "torch",
     ],  # external packages as dependencies
     license="Apache License Version 2.0,",
     long_description=open("README.md").read(),
