@@ -277,15 +277,9 @@ class FactorGraph:
             torch.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
         )
         norm_msgs = new_msgs / norm
-        if damp > 1e-6:
-            new_damped_msgs = (1 - damp) * norm_msgs + damp * old_msgs[
-                self.out_msgs
-            ]  # Add dumping
-            damped_norm = torch.reshape(
-                torch.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
-            )
-            norm_msgs = new_damped_msgs / damped_norm
-        self.messages.values[self.out_msgs] = norm_msgs
+        self.messages.values[self.out_msgs] = (1 - damp) * norm_msgs + damp * old_msgs[
+            self.out_msgs
+        ]  # Add dumping
         err_array = torch.abs(old_msgs - self.messages.values)
 
         return err_array.max().numpy(), err_array.mean().numpy()
@@ -304,9 +298,19 @@ class FactorGraph:
         old_msgs = torch.clone(self.messages.values)
         for i in range(N):
             indices = [torch.random.randint(0, N) for _ in range(c - 1)]
-            inc_msgs = torch.tensor([old_msgs[idx] for idx in indices])
-            inc_lambda0 = torch.tensor([self.Lambda0.values[idx] for idx in indices])
-            inc_lambda1 = torch.tensor([self.Lambda1.values[idx] for idx in indices])
+            inc_msgs = torch.tensor(
+                [old_msgs[idx] for idx in indices], device=self.device, dtype=self.dtype
+            )
+            inc_lambda0 = torch.tensor(
+                [self.Lambda0.values[idx] for idx in indices],
+                device=self.device,
+                dtype=self.dtype,
+            )
+            inc_lambda1 = torch.tensor(
+                [self.Lambda1.values[idx] for idx in indices],
+                device=self.device,
+                dtype=self.dtype,
+            )
             gamma0_ki = torch.reshape(
                 torch.prod(torch.sum(inc_lambda0 * inc_msgs, axis=1), axis=0),
                 (1, T + 2),
