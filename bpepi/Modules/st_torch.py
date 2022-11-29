@@ -63,10 +63,10 @@ class SparseTensor:
 
         for e in edge_list:
             self.adj_list[e[0]].append(e[1])
-        self.degree = torch.tensor([len(a) for a in self.adj_list])
+        self.degree = torch.tensor([len(a) for a in self.adj_list], device=self.device)
         c = 0
         for d in self.degree:
-            self.idx_list.append(torch.arange(c, c + d))
+            self.idx_list.append(torch.arange(c, c + d, device=self.device))
             c = c + d
 
         self.values = torch.full(

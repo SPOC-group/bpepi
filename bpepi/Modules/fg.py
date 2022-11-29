@@ -218,61 +218,12 @@ class FactorGraph:
         new_msgs = update_one + update_two + update_three
         norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
         norm_msgs = new_msgs / norm
-        if damp > 1e-6:
-            new_damped_msgs = (1 - damp) * norm_msgs + damp * old_msgs[
-                self.out_msgs
-            ]  # Add dumping
-            damped_norm = np.reshape(
-                np.sum(new_damped_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
-            )
-            norm_msgs = new_damped_msgs / damped_norm
-        self.messages.values[self.out_msgs] = norm_msgs
+        self.messages.values[self.out_msgs] = (1 - damp) * norm_msgs + damp * old_msgs[
+            self.out_msgs
+        ]  # Add dumping
         err_array = np.abs(old_msgs - self.messages.values)
 
         return err_array.max(), err_array.mean()
-
-    def pop_dyn_RRG(self, c=3):
-        """Single iteration of the Population dynamics algorithm for a d-RRG
-
-        Args:
-            c (int): degree of the RRG
-
-        Returns:
-            difference (float): Maximum difference between the messages at two consecutive iterations
-        """
-        T = self.time
-        N = self.size
-        old_msgs = np.copy(self.messages.values)
-        for i in range(N):
-            indices = [np.random.randint(0, N) for _ in range(c - 1)]
-            inc_msgs = np.array([old_msgs[idx] for idx in indices])
-            inc_lambda0 = np.array([self.Lambda0.values[idx] for idx in indices])
-            inc_lambda1 = np.array([self.Lambda1.values[idx] for idx in indices])
-            gamma0_ki = np.reshape(
-                np.prod(np.sum(inc_lambda0 * inc_msgs, axis=1), axis=0), (1, T + 2)
-            )
-            gamma1_ki = np.reshape(
-                np.prod(np.sum(inc_lambda1 * inc_msgs, axis=1), axis=0), (1, T + 2)
-            )
-            self.messages.values[i] = np.transpose(
-                (
-                    (1 - self.delta)
-                    * np.reshape(np.ones(T + 2), (1, T + 2))
-                    * (inc_lambda1[0] * gamma1_ki - inc_lambda0[0] * gamma0_ki)
-                )
-            )
-            self.messages.values[i][0] = self.delta * np.prod(
-                np.sum(inc_msgs[:, :, 0], axis=1), axis=0
-            )
-            self.messages.values[i][T + 1] = np.transpose(
-                (1 - self.delta) * inc_lambda1[0][:, T + 1] * gamma1_ki[0][T + 1]
-            )
-            norm = self.messages.values[i].sum()  # normalize the messages
-            self.messages.values[i] = self.messages.values[i] / norm
-
-        difference = np.abs(old_msgs - self.messages.values).max()
-
-        return difference
 
     def update(self, maxit=100, tol=1e-6, damp=0.0, print_iter=None):
         """Multiple iterations of the BP algorithm through the method iterate()
@@ -388,3 +339,48 @@ class FactorGraph:
                 self.observations[o[0]][o[2] + 1 :] = 0
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
+
+
+class pop_dyn(FactorGraph):
+    def pop_dyn_RRG(self, c=3):
+        """Single iteration of the Population dynamics algorithm for a d-RRG
+
+        Args:
+            c (int): degree of the RRG
+
+        Returns:
+            difference (float): Maximum difference between the messages at two consecutive iterations
+        """
+        T = self.time
+        N = self.size
+        old_msgs = np.copy(self.messages.values)
+        for i in range(N):
+            indices = [np.random.randint(0, N) for _ in range(c - 1)]
+            inc_msgs = np.array([old_msgs[idx] for idx in indices])
+            inc_lambda0 = np.array([self.Lambda0.values[idx] for idx in indices])
+            inc_lambda1 = np.array([self.Lambda1.values[idx] for idx in indices])
+            gamma0_ki = np.reshape(
+                np.prod(np.sum(inc_lambda0 * inc_msgs, axis=1), axis=0), (1, T + 2)
+            )
+            gamma1_ki = np.reshape(
+                np.prod(np.sum(inc_lambda1 * inc_msgs, axis=1), axis=0), (1, T + 2)
+            )
+            self.messages.values[i] = np.transpose(
+                (
+                    (1 - self.delta)
+                    * np.reshape(np.ones(T + 2), (1, T + 2))
+                    * (inc_lambda1[0] * gamma1_ki - inc_lambda0[0] * gamma0_ki)
+                )
+            )
+            self.messages.values[i][0] = self.delta * np.prod(
+                np.sum(inc_msgs[:, :, 0], axis=1), axis=0
+            )
+            self.messages.values[i][T + 1] = np.transpose(
+                (1 - self.delta) * inc_lambda1[0][:, T + 1] * gamma1_ki[0][T + 1]
+            )
+            norm = self.messages.values[i].sum()  # normalize the messages
+            self.messages.values[i] = self.messages.values[i] / norm
+
+        difference = np.abs(old_msgs - self.messages.values).max()
+
+        return difference
