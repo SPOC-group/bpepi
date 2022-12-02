@@ -472,8 +472,9 @@ def main():
                                 )
                             T_BP = max(TO, T)
                             contacts = generate_contacts(G, T_BP, lam)
+                            f = {}
                             if (args.rnd_init == True) or (args.rnd_inf_init == True):
-                                f_rnd = create_fg(
+                                f = create_fg(
                                     N=N,
                                     T=T_BP,
                                     contacts=contacts,
@@ -490,7 +491,7 @@ def main():
                                     logLR_list,
                                     errR_list,
                                 ) = BPloop(
-                                    f_rnd,
+                                    f,
                                     list_obs,
                                     n_iter,
                                     tol,
@@ -502,7 +503,7 @@ def main():
                                     damp=damp,
                                 )
                             if (args.inf_init == True) or (args.rnd_inf_init == True):
-                                f_informed = create_fg(
+                                f = create_fg(
                                     N=N,
                                     T=T_BP,
                                     contacts=contacts,
@@ -519,7 +520,7 @@ def main():
                                     logLI_list,
                                     errI_list,
                                 ) = BPloop(
-                                    f_informed,
+                                    f,
                                     list_obs,
                                     n_iter,
                                     tol,
@@ -531,7 +532,7 @@ def main():
                                     damp=damp,
                                 )
                             if args.unif_init == True:
-                                f_unif = create_fg(
+                                f = create_fg(
                                     N=N,
                                     T=T_BP,
                                     contacts=contacts,
@@ -548,7 +549,7 @@ def main():
                                     logLU_list,
                                     errU_list,
                                 ) = BPloop(
-                                    f_unif,
+                                    f,
                                     list_obs,
                                     n_iter,
                                     tol,
@@ -567,7 +568,7 @@ def main():
                                 "_"
                                 + time.strftime("%Y%m%d-%H%M%S")
                                 + "_"
-                                + str(random.randint(1, 1000))
+                                + str(time.time())[-6:]
                             )
                             if print_it:
                                 file_name = "IT_" + args.file_name + timestr + ".xz"
