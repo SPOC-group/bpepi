@@ -654,7 +654,7 @@ def main():
                                 saveObj1, saveObj2, init_type
                             )
     data_frame = pd.DataFrame(dict_list)
-    timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(random.randint(1, 1000))
+    timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(time.time())[-6:]
     if print_it:
         file_name = "DF_IT_" + timestr + ".xz"
     else:
