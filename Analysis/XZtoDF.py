@@ -288,7 +288,7 @@ def DtoD(data1,data2,init):
             e,
             it,
             it_final,
-            np.array(logL),
+            float(logL),
             ov0,
             ov0_rnd,
             mov0,
