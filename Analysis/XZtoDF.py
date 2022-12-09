@@ -234,7 +234,7 @@ def DtoD(data1,data2,init):
         MT = np.array([ MST, MIT, MRT])
         x0_inf = np.argmax(M0,axis=0)
         xT_inf = np.argmax(MT,axis=0)
-        ti_str = ti_star(ground_truth)
+        ti_str = ti_star(ground_truth[:T_BP+1])
 
         ov0 = OV(ground_truth[0], x0_inf)
         ov0_rnd = OV_rnd(ground_truth[0], M0)
