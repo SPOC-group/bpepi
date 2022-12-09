@@ -249,9 +249,17 @@ def main():
     parser.add_argument(
         "--T_max",
         type=int,
-        default=100,
+        default=500,
         help="Max number of timesteps of the simulation",
     )
+
+    parser.add_argument(
+        "--T_BP_max",
+        type=int,
+        default=100,
+        help="Maximum time of infectionn that can be inferred by BP",
+    )
+
     group_d = parser.add_mutually_exclusive_group(required=True)
     group_d.add_argument(
         "--Delta",
@@ -333,9 +341,10 @@ def main():
         help="Run BP from both rnd and inf initializations",
     )
     parser.add_argument(
-        "--infer_back",
-        action="store_true",
-        help="If false, do the inference on the whole epidemic. If true, in the snapshot framework, infer only backwards",
+        "--infer_up_to",
+        type=int,
+        default=-1,
+        help="If -1, infer up to the end of the epidemic. If different from -1, gives the maximum time of infection that can be inferred by BP",
     )
 
     args = parser.parse_args()
@@ -399,6 +408,7 @@ def main():
     tol = args.tol
     n_iter = args.n_iter
     T_max = args.T_max
+    T_BP_max = args.T_BP_max
     mu = 0
     if args.SI == True:
         mask = ["SI"]
@@ -422,7 +432,7 @@ def main():
     save_marginals = args.save_marginals
     SIR_sim = args.SIR_sim
     damp = args.damping
-    infer_back = args.infer_back
+    infer_up_to = args.infer_up_to
 
     dict_list = []
     t1 = time.time()
@@ -449,34 +459,36 @@ def main():
                                 ground_truth = simulate_one_detSIR(
                                     G, s_type=s_type, S=S, mask=mask, T_max=T_max
                                 )
-                            if len(ground_truth) > T_max:
+                            if ( (len(ground_truth) > T_BP_max ) & (infer_up_to == -1) ):
                                 warnings.warn(
                                     "The simulation exeeds the maximum time limit!"
                                 )
                                 sys.exit()
                             T = len(ground_truth) - 1
+                            if (infer_up_to == -1) : T_BP = T
+                            else : T_BP = infer_up_to
+                            contacts = generate_contacts(G, T_BP, lam)
                             if args.obs_type == "sensors":
                                 list_obs = generate_sensors_obs(
-                                    ground_truth, o_type=o_type, M=M
+                                    ground_truth, o_type=o_type, M=M, T_max=T_BP
                                 )
                                 list_obs_all = generate_sensors_obs(
-                                    ground_truth, o_type="rho", M=1
+                                    ground_truth, o_type="rho", M=1, T_max=T_BP
                                 )
                                 fS = np.mean(ground_truth[-1] == 0)
                                 fI = np.mean(ground_truth[-1] == 1)
-                                TO = T
+                                TO = T_BP
                             else:
                                 list_obs, fS, fI, TO = generate_snapshot_obs(
                                     ground_truth,
                                     o_type=o_type,
                                     M=M,
                                     snap_time=args.snap_time,
+                                    i_u_t = infer_up_to
                                 )
                                 list_obs_all = generate_sensors_obs(
-                                    ground_truth, o_type="rho", M=1
+                                    ground_truth, o_type="rho", M=1, T_max=T_BP
                                 )
-                            T_BP = max(TO, T)
-                            contacts = generate_contacts(G, T_BP, lam)
                             f = {}
                             if (args.rnd_init == True) or (args.rnd_inf_init == True):
                                 f = create_fg(
