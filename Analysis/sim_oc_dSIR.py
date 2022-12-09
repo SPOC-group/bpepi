@@ -620,6 +620,8 @@ def main():
                                 fS,
                                 fI,
                                 TO,
+                                T_BP,
+                                infer_up_to,
                                 Delta,
                                 damp,
                             )

@@ -98,6 +98,8 @@ def data_to_dict(data1,data2,init_type):
         r"$f_S$",
         r"$f_I$",
         r"$T_O$",
+        r"$T_{BP}$",
+        r"$infer_up_to$",
         r"$\Delta$",
         r"damping",
         r"error",
@@ -202,6 +204,8 @@ def DtoD(data1,data2,init):
     fS,
     fI,
     TO,
+    T_BP,
+    infer_up_to,
     Delta,
     damp
     ] = data1  
@@ -211,7 +215,6 @@ def DtoD(data1,data2,init):
     logL_list,
     err_list
     ] = data2
-    T_BP=max(T,TO)
     for it_idx, B in enumerate(marg_list):   
                    
         MI0 = B[:, 0]
@@ -225,9 +228,9 @@ def DtoD(data1,data2,init):
         else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T_BP+2)]) for b in B])
         pR = 1 - pS - pI
         #Take time T
-        MST = pS[:,T]
-        MIT = pI[:,T]
-        MRT = pR[:,T]
+        MST = pS[:,T_BP]
+        MIT = pI[:,T_BP]
+        MRT = pR[:,T_BP]
         MT = np.array([ MST, MIT, MRT])
         x0_inf = np.argmax(M0,axis=0)
         xT_inf = np.argmax(MT,axis=0)
@@ -237,8 +240,8 @@ def DtoD(data1,data2,init):
         ov0_rnd = OV_rnd(ground_truth[0], M0)
         mov0 = MOV(M0)
         mov0_rnd = MOV_rnd(M0)
-        ovT = OV(ground_truth[T], xT_inf)
-        ovT_rnd = OV_rnd(ground_truth[T], MT)
+        ovT = OV(ground_truth[T_BP], xT_inf)
+        ovT_rnd = OV_rnd(ground_truth[T_BP], MT)
         movT = MOV(MT)
         movT_rnd = MOV_rnd(MT)
         ti_inf = ti_inferred(B)
@@ -283,6 +286,8 @@ def DtoD(data1,data2,init):
             fS,
             fI,
             TO,
+            T_BP,
+            infer_up_to,
             Delta,
             damp,
             e,
