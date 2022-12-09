@@ -1,4 +1,3 @@
-# import pandas as pd
 import numpy as np
 import networkx as nx
 import random
@@ -106,7 +105,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
             marg_list.append(f.marginals())
             it_list.append(it)
-            e_list.append(e)
+            e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
         if it % err_space == 0:
             err_list.append([it, e_max, e_ave])
@@ -333,6 +332,11 @@ def main():
         action="store_true",
         help="Run BP from both rnd and inf initializations",
     )
+    parser.add_argument(
+        "--infer_back",
+        action="store_true",
+        help="If false, do the inference on the whole epidemic. If true, in the snapshot framework, infer only backwards",
+    )
 
     args = parser.parse_args()
     print("arguments:")
@@ -418,6 +422,7 @@ def main():
     save_marginals = args.save_marginals
     SIR_sim = args.SIR_sim
     damp = args.damping
+    infer_back = args.infer_back
 
     dict_list = []
     t1 = time.time()
