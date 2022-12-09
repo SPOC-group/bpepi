@@ -576,9 +576,9 @@ def main():
                                 + str(time.time())[-6:]
                             )
                             if print_it:
-                                file_name = "IT_" + args.file_name + timestr + ".xz"
+                                file_name = "IT_" + args.file_name + timestr + f"_{seed}.xz"
                             else:
-                                file_name = args.file_name + timestr + ".xz"
+                                file_name = args.file_name + timestr + f"_{seed}.xz"
 
                             saveObj1 = (
                                 graph,
@@ -662,9 +662,9 @@ def main():
     data_frame = pd.DataFrame(dict_list)
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(time.time())[-6:]
     if print_it:
-        file_name = "DF_IT_" + timestr + ".xz"
+        file_name = "DF_IT_" + timestr + f"_{seed}.xz"
     else:
-        file_name = "DF_" + timestr + ".xz"
+        file_name = "DF_" + timestr + f"_{seed}.xz"
     with lzma.open(save_DF_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
 
