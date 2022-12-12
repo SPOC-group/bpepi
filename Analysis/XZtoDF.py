@@ -216,6 +216,7 @@ def DtoD(data1,data2,init):
     err_list
     ] = data2
     for it_idx, B in enumerate(marg_list):   
+
                    
         MI0 = B[:, 0]
         MS0 = 1-MI0
@@ -240,8 +241,8 @@ def DtoD(data1,data2,init):
         ov0_rnd = OV_rnd(ground_truth[0], M0)
         mov0 = MOV(M0)
         mov0_rnd = MOV_rnd(M0)
-        ovT = OV(ground_truth[T_BP], xT_inf)
-        ovT_rnd = OV_rnd(ground_truth[T_BP], MT)
+        ovT = OV(ground_truth[min(T,T_BP)], xT_inf)
+        ovT_rnd = OV_rnd(ground_truth[min(T,T_BP)], MT)
         movT = MOV(MT)
         movT_rnd = MOV_rnd(MT)
         ti_inf = ti_inferred(B)
