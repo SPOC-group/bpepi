@@ -23,8 +23,8 @@ import multiprocessing, time
 simulation_param = []
 s_type= "delta" #"n_sources"
 o_type= "rho" #"n_obs"
-seed_table=[i for i in np.arange(1,10)]
-N_table=[10000]
+seed_table=[1]#[i for i in np.arange(1,10)]
+N_table=[1000]
 d_table=[3]
 lam_table=[0.2,0.3,0.4,0.5]
 sources_table=[0.021,0.022,0.023,0.024,0.025,0.026,0.027,0.028,0.029]
@@ -37,7 +37,7 @@ for i_s, seed in enumerate(seed_table):
                 for i_S, S in enumerate(sources_table):
                     for i_M, M in enumerate(obs_table):
                         simulation_param.append(
-                            (seed,N,d,lam,S,M)
+                            (seed,N,d,lam,S,M,s_type,o_type)
                         )
 
 
@@ -341,9 +341,6 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
     print("arguments:")
     print(args)
 
-    if args.n_sources == 0:
-        warnings.warn("YOU CANNOT HAVE ZERO SOURCES!")
-        sys.exit()
     save_dir = args.save_dir
     save_DF_dir = args.save_DF_dir
     path_save = Path(save_dir)
@@ -413,7 +410,7 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
     t1 = time.time()
     t2 = time.time()
 
-    if len(np.shape(args.delta)) == 0:
+    if s_type == "delta":
         pseed = S / N
     else:
         pseed = S
@@ -547,7 +544,7 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
             init=0,
             damp=damp,
         )
-    print(f'Finished seed = {deed}, N = {N}, d = {d}, lam = {lam}, {s_type} = {S}, {o_type} = {M} | {time.time()-start_time}', flush=True)
+    print(f'Finished seed = {seed}, N = {N}, d = {d}, lam = {lam}, {s_type} = {S}, {o_type} = {M} | {time.time()-start_time}', flush=True)
     timestr = (
         "_"
         + time.strftime("%Y%m%d-%H%M%S")
@@ -651,7 +648,7 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
 
 
 if __name__ == '__main__':
-  pool = multiprocessing.Pool()
+  pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
   # NB the chuncksize should be 1 if the job has different ETA!
   _ = pool.starmap(sim, simulation_param, chunksize=1)
   pool.close()
