@@ -198,12 +198,6 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
         help="Space between saved iterations",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=0,
-        help="seed for the number generators",
-    )
-    parser.add_argument(
         "--tol",
         type=float,
         default=1e-6,
