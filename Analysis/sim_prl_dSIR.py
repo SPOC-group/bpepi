@@ -23,8 +23,8 @@ import multiprocessing, time
 simulation_param = []
 s_type= "delta" #"n_sources"
 o_type= "rho" #"n_obs"
-seed_table=[1]#[i for i in np.arange(1,10)]
-N_table=[1000]
+seed_table=[1,2]
+N_table=[10000]
 d_table=[3]
 lam_table=[0.2,0.3,0.4,0.5]
 sources_table=[0.021,0.022,0.023,0.024,0.025,0.026,0.027,0.028,0.029]
@@ -198,12 +198,6 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
         help="Space between saved iterations",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=0,
-        help="seed for the number generators",
-    )
-    parser.add_argument(
         "--tol",
         type=float,
         default=1e-6,
@@ -374,7 +368,6 @@ def sim(seed,N,d,lam,S,M,s_type,o_type):
 
     print_it = args.print_it
     iter_space = args.iter_space
-    seed = args.seed  # setting seed everywhere for reproducibility TBD
     random.seed(seed)
     np.random.seed(seed)
     tol = args.tol
