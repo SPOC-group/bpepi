@@ -72,12 +72,11 @@ def main():
 
 def data_to_dict(data1,data2,init_type):
     
-    single_dict_list = []
     if init_type== 0:
-        single_dict_list.append(DtoD(data1,data2,init="rnd"))
+        single_dict_list = DtoD(data1,data2,init="rnd")
         #single_dict_list.append(dict(zip(keys, values))) 
     elif init_type== 1:
-        single_dict_list.append(DtoD(data1,data2,init="inf")
+        single_dict_list = DtoD(data1,data2,init="inf")
     elif init_type== 2:
         [marg_list_rnd, 
         marg_list_inf,
@@ -96,16 +95,16 @@ def data_to_dict(data1,data2,init_type):
         itR_list,
         logLR_list,
         errR_list]
-        single_dict_list.append(DtoD(data1,data2R,init="rnd") )
+        single_dict_list = DtoD(data1,data2R,init="rnd") 
         data2I = [
         marg_list_inf, 
         eI_list,
         itI_list,
         logLI_list,
         errI_list]
-        single_dict_list.append(DtoD(data1,data2I,init="inf"))         
+        single_dict_list = single_dict_list + DtoD(data1,data2I,init="inf") 
     else:
-        single_dict_list.append(DtoD(data1,data2,init="unif"))
+        single_dict_list = DtoD(data1,data2,init="unif")
     
     return single_dict_list
 
