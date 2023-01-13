@@ -343,7 +343,7 @@ def main():
     )
     parser.add_argument(
         "--infer_up_to",
-        type=int,
+        type=float,
         default=-1,
         help="If -1, infer up to the end of the epidemic. If different from -1, gives the maximum time of infection that can be inferred by BP",
     )
@@ -433,7 +433,7 @@ def main():
     save_marginals = args.save_marginals
     SIR_sim = args.SIR_sim
     damp = args.damping
-    infer_up_to = args.infer_up_to
+    infer_up_to = int(np.ceil(args.infer_up_to))
 
     dict_list = []
     t1 = time.time()
@@ -671,9 +671,10 @@ def main():
                             if save_marginals:
                                 with lzma.open(save_dir + file_name, "wb") as f:
                                     pickle.dump([saveObj1, saveObj2], f)
-                            dict_list = dict_list + data_to_dict(
-                                saveObj1, saveObj2, init_type
-                            )
+                            for i in range(len(saveObj2[0])):
+                                dict_list = dict_list + data_to_dict(
+                                    saveObj1, saveObj2, init_type
+                                )
     data_frame = pd.DataFrame(dict_list)
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(time.time())[-6:]
     if print_it:
