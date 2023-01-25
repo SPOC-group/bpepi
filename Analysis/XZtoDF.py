@@ -72,7 +72,48 @@ def main():
 
 def data_to_dict(data1,data2,init_type):
     
-    single_dict_list = []
+    if init_type== 0:
+        single_dict_list = DtoD(data1,data2,init="rnd")
+        #single_dict_list.append(dict(zip(keys, values))) 
+    elif init_type== 1:
+        single_dict_list = DtoD(data1,data2,init="inf")
+    elif init_type== 2:
+        [marg_list_rnd, 
+        marg_list_inf,
+        eR_list,
+        eI_list,
+        itR_list,
+        itI_list,
+        logLR_list,
+        logLI_list,
+        errR_list,
+        errI_list
+        ] = data2
+        data2R = [
+        marg_list_rnd, 
+        eR_list,
+        itR_list,
+        logLR_list,
+        errR_list]
+        single_dict_list = DtoD(data1,data2R,init="rnd") 
+        data2I = [
+        marg_list_inf, 
+        eI_list,
+        itI_list,
+        logLI_list,
+        errI_list]
+        single_dict_list = single_dict_list + DtoD(data1,data2I,init="inf") 
+    else:
+        single_dict_list = DtoD(data1,data2,init="unif")
+    
+    return single_dict_list
+
+if __name__ == "__main__":
+    main()
+
+
+def DtoD(data1,data2,init):
+
     keys = [
         r"init",
         r"graph_type",
@@ -98,6 +139,8 @@ def data_to_dict(data1,data2,init_type):
         r"$f_S$",
         r"$f_I$",
         r"$T_O$",
+        r"$T_{BP}$",
+        r"$infer_up_to$",
         r"$\Delta$",
         r"damping",
         r"error",
@@ -130,51 +173,6 @@ def data_to_dict(data1,data2,init_type):
         r"$\delta R_{SE}$",
         r"ConvChecks"
     ]
-    if init_type== 0:
-        values = DtoD(data1,data2,init="rnd")
-        single_dict_list.append(dict(zip(keys, values))) 
-    elif init_type== 1:
-        values = DtoD(data1,data2,init="inf")
-        single_dict_list.append(dict(zip(keys, values))) 
-    elif init_type== 2:
-        [marg_list_rnd, 
-        marg_list_inf,
-        eR_list,
-        eI_list,
-        itR_list,
-        itI_list,
-        logLR_list,
-        logLI_list,
-        errR_list,
-        errI_list
-        ] = data2
-        data2R = [
-        marg_list_rnd, 
-        eR_list,
-        itR_list,
-        logLR_list,
-        errR_list]
-        values = DtoD(data1,data2R,init="rnd")
-        single_dict_list.append(dict(zip(keys, values)))
-        data2I = [
-        marg_list_inf, 
-        eI_list,
-        itI_list,
-        logLI_list,
-        errI_list]
-        values = DtoD(data1,data2I,init="inf")
-        single_dict_list.append(dict(zip(keys, values)))           
-    else:
-        values = DtoD(data1,data2,init="unif")
-        single_dict_list.append(dict(zip(keys, values))) 
-    
-    return single_dict_list
-
-if __name__ == "__main__":
-    main()
-
-
-def DtoD(data1,data2,init):
     [graph, 
     N,
     d,
@@ -202,6 +200,8 @@ def DtoD(data1,data2,init):
     fS,
     fI,
     TO,
+    T_BP,
+    infer_up_to,
     Delta,
     damp
     ] = data1  
@@ -211,7 +211,8 @@ def DtoD(data1,data2,init):
     logL_list,
     err_list
     ] = data2
-    T_BP=max(T,TO)
+
+    dict_list=[]
     for it_idx, B in enumerate(marg_list):   
                    
         MI0 = B[:, 0]
@@ -225,20 +226,20 @@ def DtoD(data1,data2,init):
         else : pI = np.array([ np.array([ sum(b[1+t-Delta:1+t]) if t>=Delta else sum(b[:t+1]) for t in range(T_BP+2)]) for b in B])
         pR = 1 - pS - pI
         #Take time T
-        MST = pS[:,T]
-        MIT = pI[:,T]
-        MRT = pR[:,T]
+        MST = pS[:,T_BP]
+        MIT = pI[:,T_BP]
+        MRT = pR[:,T_BP]
         MT = np.array([ MST, MIT, MRT])
         x0_inf = np.argmax(M0,axis=0)
         xT_inf = np.argmax(MT,axis=0)
-        ti_str = ti_star(ground_truth)
+        ti_str = ti_star(ground_truth[:T_BP+1])
 
         ov0 = OV(ground_truth[0], x0_inf)
         ov0_rnd = OV_rnd(ground_truth[0], M0)
         mov0 = MOV(M0)
         mov0_rnd = MOV_rnd(M0)
-        ovT = OV(ground_truth[T], xT_inf)
-        ovT_rnd = OV_rnd(ground_truth[T], MT)
+        ovT = OV(ground_truth[min(T,T_BP)], xT_inf)
+        ovT_rnd = OV_rnd(ground_truth[min(T,T_BP)], MT)
         movT = MOV(MT)
         movT_rnd = MOV_rnd(MT)
         ti_inf = ti_inferred(B)
@@ -283,12 +284,14 @@ def DtoD(data1,data2,init):
             fS,
             fI,
             TO,
+            T_BP,
+            infer_up_to,
             Delta,
             damp,
             e,
             it,
             it_final,
-            logL,
+            float(logL),
             ov0,
             ov0_rnd,
             mov0,
@@ -315,4 +318,6 @@ def DtoD(data1,data2,init):
             Rse - Rmse,
             err_list
         ]
-        return values
+        dict_list.append(dict(zip(keys, values))) 
+
+    return dict_list

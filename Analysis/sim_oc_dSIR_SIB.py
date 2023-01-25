@@ -15,7 +15,59 @@ from pathlib import Path
 import argparse
 import warnings
 from bpepi.Modules import fg_torch as fg_t
-from bpepi.Modules import fg as fg
+from bpepi.Modules import fg as fg_
+import sib
+
+
+class fg(fg_):
+    def __init__(
+        self, N, T, contacts, obs, delta, mask=["SI"], mask_type="SI", verbose=False
+    ):
+        """Construction of the FactorGraph object, starting from contacts and observations
+
+        Args:
+            N (int): Number of nodes in the contact network
+            T (int): Time at which the simulation stops
+            contacts (list): List of all the contacts, each given by a list (i, j, t, lambda_ij(t) )
+            obs (list): List of the observations, each given by a list (i, 0/1, t), where 0 corresponds to S and 1 to I
+            delta (float): Probability for an individual to be a source
+            mask (list): if it is equal to ["SI"], the function simulates an SI model, otherwise the i-th element of the
+                list (between 0 and 1) represents the infectivity of the nodes at i timesteps after the infection
+            mask_type (string): Type of inference model. If equal to "SIR", it means we are simulating a SIR model
+                and inferring using the dSIR model
+        """
+
+        self.size = N
+        self.time = T
+        self.delta = delta
+        self.contacts = contacts
+
+        params = sib.Params(prob_r=sib.Exponential(mu=0.), pseed=delta, psus=0.5)
+
+        self.f = sib.FactorGraph(
+            params=params,
+            contacts=contacts,
+            tests=[(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==1),o[2]) for o in obs],
+        )
+
+    def reset_obs(self, obs):
+        obs_temp = [(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==1),o[2]) for o in obs]
+        self.f.reset_observations(obs_temp)
+    
+    def iterate(self, damp):
+        return self.f.update(damping=damp), 0
+
+    def marginals(self):
+        M = np.zeros((len(self.f.nodes), self.time+2))
+        for i in range(len(self.f.nodes)):
+            M[i] = self.f.nodes[i].bt
+        return M
+
+    def loglikelihood(self):
+        return self.f.loglikelihood()
+    
+    
+
 
 
 def print_iter(err, it):
@@ -487,6 +539,7 @@ def main():
                                     snap_time=args.snap_time,
                                     i_u_t = infer_up_to
                                 )
+                                
                                 list_obs_all = generate_sensors_obs(
                                     ground_truth, o_type="rho", M=1, T_max=T_BP
                                 )
@@ -502,6 +555,7 @@ def main():
                                     mask_type=mask_type,
                                     torch=args.pytorch,
                                 )
+                                
                                 (
                                     marg_list_rnd,
                                     eR_list,
@@ -560,6 +614,7 @@ def main():
                                     mask_type=mask_type,
                                     torch=args.pytorch,
                                 )
+
                                 (
                                     marg_list_unif,
                                     eU_list,
@@ -686,3 +741,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
