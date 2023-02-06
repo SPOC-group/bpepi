@@ -19,7 +19,7 @@ from bpepi.Modules import fg as fg_
 import sib
 
 
-class fg(fg_):
+class fg(fg_.FactorGraph):
     def __init__(
         self, N, T, contacts, obs, delta, mask=["SI"], mask_type="SI", verbose=False
     ):
@@ -47,15 +47,27 @@ class fg(fg_):
         self.f = sib.FactorGraph(
             params=params,
             contacts=contacts,
-            tests=[(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==1),o[2]) for o in obs],
+            tests= [] #self.gen_obs(obs),
         )
+        self.reset_obs(obs)
+
+        print(max([c[2] for c in contacts]), self.time, len(self.f.nodes[0].bt) )
+        if (len(obs) > 0):
+            print(np.max(np.array([c[2] for c in obs])))
+
+    def gen_obs(self,obs):
+        obs_temp = [(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==2),o[2]) for o in obs]
+        #T = self.time
+        #for i in range(self.size):
+        #    obs_temp.append((i,sib.Test(1,1,1),T))
+        return obs_temp
 
     def reset_obs(self, obs):
-        obs_temp = [(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==1),o[2]) for o in obs]
-        self.f.reset_observations(obs_temp)
+        obs_temp = self.gen_obs(obs)
+        self.f.reset_observations(obs=obs_temp)
     
     def iterate(self, damp):
-        return self.f.update(damping=damp), 0
+        return 0., self.f.update(damping=damp)
 
     def marginals(self):
         M = np.zeros((len(self.f.nodes), self.time+2))
@@ -88,7 +100,7 @@ def create_fg(
             mask_type=mask_type,
         )
     else:
-        return fg.FactorGraph(
+        return fg(
             N=N,
             T=T,
             contacts=contacts,
