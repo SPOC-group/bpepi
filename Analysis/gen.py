@@ -2,6 +2,7 @@ import numpy as np
 import random
 import networkx as nx
 import math
+#import sib
 
 def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100):
     """Function to simulate an epidemic using the deterministic-SIR model
@@ -259,6 +260,20 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1, i_u_t=-1):
             obs_sim.extend([ (i, conf[T,i], t2) for i in nodes2])
     return obs_sim, fS, fI, t2
 
+#def obs_toSIB(obs):
+#    """Function to convert a list of observations into a SIB array
+#
+#    Args:
+#        obs (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
+#        T (int): maximum time of infection
+#        N (int): number of nodes
+#
+#    Returns:
+#        SIB (array): array of shape (T+1) x N containing the observations
+#    """
+#    obs_temp = [(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==1),o[2]) for o in obs]
+#    return obs_temp
+#
 def generate_sensors_obs(conf, o_type="rho", M=0.0, T_max=100):
     """Function to generate a list of observations of a certain fraction of nodes, given an epidemic simulation
 
