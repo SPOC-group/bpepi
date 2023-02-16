@@ -52,7 +52,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
 
     print_space = 1
     if init == 1:
-        for it in range(n_iter):
+        for it in range(it_max):
             e0_max, e0_ave = f.iterate(damp)
             if it % print_space == 0:
                 print_iter([e0_max, e0_ave], it)
@@ -73,7 +73,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
     for it in np.arange(1, n_iter + 1):
-        e_max, e_ave = f.iterate(damp=0.0)
+        e_max, e_ave = f.iterate(damp=0.01)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == n_iter)):
             marg_list.append(f.marginals())
             it_list.append(it)
@@ -88,7 +88,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
     if e_ave < tol2:
         while e_ave > tol:
             it = it + 1
-            e_max, e_ave = f.iterate(damp=0.0)
+            e_max, e_ave = f.iterate(damp=0.01)
             if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
                 marg_list.append(f.marginals())
                 it_list.append(it)
