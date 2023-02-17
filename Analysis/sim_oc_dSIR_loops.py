@@ -141,7 +141,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
 
 
 def main():
-    N_pop=100
+    N_pop=10
 
     parser = argparse.ArgumentParser(description="Compute marginals using BPEpI")
     parser.add_argument(
