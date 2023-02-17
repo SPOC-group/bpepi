@@ -221,17 +221,17 @@ def compute_Lambdas_dSIR(
     Lambda0.values[:, a, b] = 0
 
     # Compute and apply the infectivity masks
-    Mask1 = torch.array(
+    Mask1 = torch.stack(
         [
-            torch.tensor(
+            torch.Tensor(
                 ([1] * (tj + 2) + mask + [0] * (Tp2 - len(mask) - tj - 2))[:Tp2]
             )
             for tj in range(Tp2)
         ]
     )
-    Mask0 = torch.array(
+    Mask0 = torch.stack(
         [
-            torch.tensor(
+            torch.Tensor(
                 ([1] * (tj + 1) + mask + [0] * (Tp2 - len(mask) - tj - 1))[:Tp2]
             )
             for tj in range(Tp2)

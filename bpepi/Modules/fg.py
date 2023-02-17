@@ -145,7 +145,7 @@ class FactorGraph:
         Returns:
             arr_5 (array): final array
         """
-        epsilon = 1e-50
+        epsilon = 1e-20
         #print(epsilon)
         arr[arr == 0] = epsilon
         arr_2 = np.log(arr)
