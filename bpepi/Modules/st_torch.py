@@ -215,9 +215,9 @@ def compute_Lambdas_dSIR(
 
     # fill the lower triangular matrix lambdas with 0
     n_dim = Lambda1.values.shape[1]
-    a, b = torch.tril_indices(n_dim, offset=1)
+    a, b = torch.tril_indices(n_dim, n_dim, offset=1)
     Lambda1.values[:, a, b] = 0
-    a, b = torch.tril_indices(n_dim, offset=0)
+    a, b = torch.tril_indices(n_dim, n_dim,  offset=0)
     Lambda0.values[:, a, b] = 0
 
     # Compute and apply the infectivity masks
