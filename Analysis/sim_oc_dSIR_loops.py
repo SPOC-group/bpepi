@@ -68,14 +68,21 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
     err_list = []
     # BP iteration
     if print_it:
-        mess_list = [[np.copy(f.messages.get_ij(e[0],e[1])) for e in edge_list]]
+        mess_list = []
+        mess = []
+        for e in edge_list:
+            mess.append(np.copy(f.messages.get_ij(e[0],e[1])))
+        mess_list.append(mess)
         it_list = [0]
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
     for it in np.arange(1, n_iter + 1):
         e_max, e_ave = f.iterate(damp=0.0)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == n_iter)):
-            mess_list.append([np.copy(f.messages.get_ij(e[0],e[1]))  for e in edge_list])
+            mess = []
+            for e in edge_list:
+                mess.append(np.copy(f.messages.get_ij(e[0],e[1])))
+            mess_list.append(mess)
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
@@ -90,7 +97,10 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
             it = it + 1
             e_max, e_ave = f.iterate(damp=0.0)
             if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
-                mess_list.append([np.copy(f.messages.get_ij(e[0],e[1]))  for e in edge_list])
+                mess = []
+                for e in edge_list:
+                    mess.append(np.copy(f.messages.get_ij(e[0],e[1])))
+                mess_list.append(mess)
                 it_list.append(it)
                 e_list.append(e_ave)
                 logL_list.append(f.loglikelihood())
@@ -104,7 +114,10 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         it = it + 1
         e_max, e_ave = f.iterate(damp=damp)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
-            mess_list.append([np.copy(f.messages.get_ij(e[0],e[1]))  for e in edge_list])
+            mess = []
+            for e in edge_list:
+                mess.append(np.copy(f.messages.get_ij(e[0],e[1])))
+            mess_list.append(mess)
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
@@ -118,7 +131,10 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         it = it + 1
         e_max, e_ave = f.iterate(damp=damp * 2)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
-            mess_list.append([np.copy(f.messages.get_ij(e[0],e[1]))  for e in edge_list])
+            mess = []
+            for e in edge_list:
+                mess.append(np.copy(f.messages.get_ij(e[0],e[1])))
+            mess_list.append(mess)
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
@@ -130,7 +146,11 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
             break
 
     if not print_it:
-        mess_list = [[np.copy(f.messages.get_ij(e[0],e[1]))  for e in edge_list]]
+        mess_list = []
+        mess = []
+        for e in edge_list:
+            mess.append(np.copy(f.messages.get_ij(e[0],e[1])))
+        mess_list.append(mess)
         it_list = [it]
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
@@ -141,7 +161,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
 
 
 def main():
-    N_pop=100
+    N_pop=10
 
     parser = argparse.ArgumentParser(description="Compute marginals using BPEpI")
     parser.add_argument(
@@ -633,7 +653,7 @@ def main():
                                 infer_up_to,
                                 Delta,
                                 damp,
-                                edge_list
+                                edge_list 
                             )
                             if args.rnd_init == True:
                                 init_type = 0
