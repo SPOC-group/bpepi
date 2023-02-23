@@ -46,57 +46,10 @@ class FactorGraph:
         if verbose:
             print("Lambdas matrices computed")
 
-        self.observations = np.ones((N, T + 2))  # creating the mask for observations
-        for o in obs:
-            i_o = o[0]
-            s_o = o[1]
-            t_o = o[2]
-            if s_o == 0:
-                self.observations[i_o][: t_o + 1] = 0
-            if s_o == 1:
-                if mask == ["SI"]:
-                    self.observations[i_o][t_o + 1 :] = 0
-                elif mask_type == "SIR":
-                    obs_mask = np.array(
-                        [
-                            mask[t_o - t - 1]
-                            if ((t < t_o) and (t_o - t <= len(mask)))
-                            else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-                else:
-                    obs_mask = np.array(
-                        [
-                            1 if ((t < t_o) and (t_o - t <= len(mask))) else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-            if s_o == 2:
-                if mask == ["SI"]:
-                    self.observations[i_o][
-                        t_o + 1 :
-                    ] = 0  # Do as if it were I. Is this the best we can do?
-                elif mask_type == "SIR":
-                    obs_mask = np.array(
-                        [
-                            1 - mask[t_o - t - 1]
-                            if ((t < t_o) and (t_o - t <= len(mask)))
-                            else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-                else:
-                    obs_mask = np.array(
-                        [
-                            1 if (t_o - t > len(mask)) else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
+        self.observations = np.ones(
+            (self.size, self.time + 2)
+        )  # creating the mask for observations
+        self.reset_obs(obs)
 
         if verbose:
             print("Observations array created")
@@ -433,10 +386,10 @@ class FactorGraph:
             (self.size, self.time + 2)
         )  # creating the mask for observations
         for o in obs:
-            if o[1] == 1:
-                self.observations[o[0]][o[2] + 1 :] = 0
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
+            else:
+                self.observations[o[0]][o[2] + 1 :] = 0
 
 
 class pop_dyn(FactorGraph):

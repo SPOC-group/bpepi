@@ -54,11 +54,14 @@ class SparseTensor:
         self.dtype = dtype
         contacts = torch.tensor(contacts)
 
-        edge_list = torch.unique(
-            contacts[:, :2].to(dtype=torch.long), dim=0
-        )  # We get the contact network directly from the list of contacts
-        edge_list = torch.concat((edge_list, torch.flip(edge_list, [1])), dim=0)
-        edge_list = torch.unique(edge_list, dim=0)
+        if contacts.nelement() == 0: 
+            edge_list = []
+        else: 
+            edge_list = torch.unique(
+                contacts[:, :2].to(dtype=torch.long), dim=0
+            )  # We get the contact network directly from the list of contacts
+            edge_list = torch.concat((edge_list, torch.flip(edge_list, [1])), dim=0)
+            edge_list = torch.unique(edge_list, dim=0)
         self.num_direct_edges = len(edge_list)
 
         for e in edge_list:
