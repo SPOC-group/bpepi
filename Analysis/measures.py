@@ -1,7 +1,7 @@
 import numpy as np
 #import random
 
-def ti_star(status_nodes):
+def ti_star(status_nodes,T_BP):
     """Function to compute the ground truth vector of times of infection
 
     Args:
@@ -11,12 +11,11 @@ def ti_star(status_nodes):
         ti (array): Array of size N containing the ground-truth vector of times of infection
     """
     N = len(status_nodes[0])
-    T = len(status_nodes)-1
     ti = np.zeros(N)
     for i in range(N):
         t_inf = np.nonzero(status_nodes[:, i] == 1)[0]
         if len(t_inf) == 0:
-            ti[i] = T
+            ti[i] = T_BP
         else:
             ti[i] = t_inf[0] - 1
     return ti

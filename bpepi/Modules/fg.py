@@ -46,57 +46,10 @@ class FactorGraph:
         if verbose:
             print("Lambdas matrices computed")
 
-        self.observations = np.ones((N, T + 2))  # creating the mask for observations
-        for o in obs:
-            i_o = o[0]
-            s_o = o[1]
-            t_o = o[2]
-            if s_o == 0:
-                self.observations[i_o][: t_o + 1] = 0
-            if s_o == 1:
-                if mask == ["SI"]:
-                    self.observations[i_o][t_o + 1 :] = 0
-                elif mask_type == "SIR":
-                    obs_mask = np.array(
-                        [
-                            mask[t_o - t - 1]
-                            if ((t < t_o) and (t_o - t <= len(mask)))
-                            else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-                else:
-                    obs_mask = np.array(
-                        [
-                            1 if ((t < t_o) and (t_o - t <= len(mask))) else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-            if s_o == 2:
-                if mask == ["SI"]:
-                    self.observations[i_o][
-                        t_o + 1 :
-                    ] = 0  # Do as if it were I. Is this the best we can do?
-                elif mask_type == "SIR":
-                    obs_mask = np.array(
-                        [
-                            1 - mask[t_o - t - 1]
-                            if ((t < t_o) and (t_o - t <= len(mask)))
-                            else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-                else:
-                    obs_mask = np.array(
-                        [
-                            1 if (t_o - t > len(mask)) else 0
-                            for t in np.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
+        self.observations = np.ones(
+            (self.size, self.time + 2)
+        )  # creating the mask for observations
+        self.reset_obs(obs)
 
         if verbose:
             print("Observations array created")
@@ -146,6 +99,7 @@ class FactorGraph:
             arr_5 (array): final array
         """
         epsilon = 1e-20
+        #print(epsilon)
         arr[arr == 0] = epsilon
         arr_2 = np.log(arr)
         arr_copy = np.copy(arr_2)
@@ -156,6 +110,77 @@ class FactorGraph:
 
     def iterate(self, damp):
         """Single iteration of the Belief Propagation algorithm
+
+        Returns:
+            err_max (float): Maximum difference between the messages at two consecutive iterations
+            err_avg (float): Average difference between the messages at two consecutive iterations
+        """
+        T = self.time
+        old_msgs = np.copy(self.messages.values)
+        msgs_tilde = old_msgs[self.inc_msgs]
+
+        # calculate gamma matrices
+        gamma0_hat = np.sum(msgs_tilde * self.Lambda0_tilde, axis=1, keepdims=1)
+        gamma1_hat = np.sum(msgs_tilde * self.Lambda1_tilde, axis=1, keepdims=1)
+        gamma0 = self.get_gamma(gamma0_hat, self.reduce_idxs, self.repeat_deg)
+        gamma1 = self.get_gamma(gamma1_hat, self.reduce_idxs, self.repeat_deg)
+
+        # calculate part one of update
+        one_obs = (1 - self.delta) * np.reshape(
+            self.observations[self.obs_i], (len(self.out_msgs), 1, T + 2)
+        )
+        # due to floating point errors accrued when using np.log and np.exp
+        # the substraction can sometimes give an extemely small negative result.
+        # Therefore a hard cutoff is implemented to bring these values to zero.
+        one_main = np.clip(
+            self.Lambda1_tilde * gamma1 - self.Lambda0_tilde * gamma0, 0, 1
+        )
+        one = np.transpose(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
+
+        # calculate part two of update
+        two_obs = self.delta * self.observations[self.obs_i][:, 0]
+        two_msgs = np.sum(msgs_tilde[:, :, 0], axis=1)
+        two_main = self.get_gamma(two_msgs, self.reduce_idxs, self.repeat_deg)
+        two = np.reshape(
+            np.tile(np.reshape(two_obs * two_main, (len(self.out_msgs), 1)), T + 2),
+            (len(self.out_msgs), 1, T + 2),
+        )
+
+        # calculate part three of update
+        three_obs = (1 - self.delta) * np.reshape(
+            self.observations[self.obs_i][:, T + 1], (len(self.out_msgs), 1)
+        )
+        gamma1_reshaped = np.reshape(gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
+        three_main = self.Lambda1_tilde[:, :, T + 1] * gamma1_reshaped
+        three = np.reshape(three_obs * three_main, (len(self.out_msgs), 1, T + 2))
+
+        # update the message values
+        update_one = np.concatenate(
+            (
+                np.zeros((len(self.out_msgs), 1, T + 2)),
+                one,
+                np.zeros((len(self.out_msgs), 1, T + 2)),
+            ),
+            axis=1,
+        )
+        update_two = np.concatenate(
+            (two, np.zeros((len(self.out_msgs), T + 1, T + 2))), axis=1
+        )
+        update_three = np.concatenate(
+            (np.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
+        )
+        new_msgs = update_one + update_two + update_three
+        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+        norm_msgs = new_msgs / norm
+        self.messages.values[self.out_msgs] = (1 - damp) * norm_msgs + damp * old_msgs[
+            self.out_msgs
+        ]  # Add dumping
+        err_array = np.abs(old_msgs - self.messages.values)
+
+        return err_array.max(), err_array.mean()
+
+    def seq_iterate(self, damp):
+        """Single sequentialiteration of the Belief Propagation algorithm
 
         Returns:
             err_max (float): Maximum difference between the messages at two consecutive iterations
@@ -270,6 +295,32 @@ class FactorGraph:
             marginals.append(marg / marg.sum())
         return np.asarray(marginals)
 
+    def pair_marginals(self):
+        """Computes the array of the BP messages for each node
+
+        Returns:
+            messages (np.array): Array of the BP messages, of shape E x (T+2) x (T+2)
+        """
+        pair_marg = SparseTensor(
+            Tensor_to_copy=self.messages
+        )
+        pair_marg.values = self.messages.values[self.out_msgs] * (np.transpose(self.messages.values, axes=(0,2,1))[self.inc_msgs])
+        pair_marg.values = pair_marg.values/ np.sum(pair_marg.values, axis=(1,2))[:,np.newaxis,np.newaxis]
+        return pair_marg
+
+    def get_messages(self):
+        """Computes the array of the BP marginals for each node
+
+        Returns:
+            marginals (np.array): Array of the BP marginals, of shape N x (T+2)
+        """
+
+        mess = SparseTensor(
+            Tensor_to_copy=self.messages
+        )
+        mess.values = np.copy(self.messages.values)
+        return mess
+
     def loglikelihood(self):
         """Computes the LogLikelihood from the BP messages
 
@@ -335,10 +386,10 @@ class FactorGraph:
             (self.size, self.time + 2)
         )  # creating the mask for observations
         for o in obs:
-            if o[1] == 1:
-                self.observations[o[0]][o[2] + 1 :] = 0
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
+            else:
+                self.observations[o[0]][o[2] + 1 :] = 0
 
 
 class pop_dyn(FactorGraph):

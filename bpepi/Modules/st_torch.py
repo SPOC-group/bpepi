@@ -54,11 +54,14 @@ class SparseTensor:
         self.dtype = dtype
         contacts = torch.tensor(contacts)
 
-        edge_list = torch.unique(
-            contacts[:, :2].to(dtype=torch.long), dim=0
-        )  # We get the contact network directly from the list of contacts
-        edge_list = torch.concat((edge_list, torch.flip(edge_list, [1])), dim=0)
-        edge_list = torch.unique(edge_list, dim=0)
+        if contacts.nelement() == 0: 
+            edge_list = []
+        else: 
+            edge_list = torch.unique(
+                contacts[:, :2].to(dtype=torch.long), dim=0
+            )  # We get the contact network directly from the list of contacts
+            edge_list = torch.concat((edge_list, torch.flip(edge_list, [1])), dim=0)
+            edge_list = torch.unique(edge_list, dim=0)
         self.num_direct_edges = len(edge_list)
 
         for e in edge_list:
@@ -215,23 +218,23 @@ def compute_Lambdas_dSIR(
 
     # fill the lower triangular matrix lambdas with 0
     n_dim = Lambda1.values.shape[1]
-    a, b = torch.tril_indices(n_dim, offset=1)
+    a, b = torch.tril_indices(n_dim, n_dim, offset=1)
     Lambda1.values[:, a, b] = 0
-    a, b = torch.tril_indices(n_dim, offset=0)
+    a, b = torch.tril_indices(n_dim, n_dim,  offset=0)
     Lambda0.values[:, a, b] = 0
 
     # Compute and apply the infectivity masks
-    Mask1 = torch.array(
+    Mask1 = torch.stack(
         [
-            torch.tensor(
+            torch.Tensor(
                 ([1] * (tj + 2) + mask + [0] * (Tp2 - len(mask) - tj - 2))[:Tp2]
             )
             for tj in range(Tp2)
         ]
     )
-    Mask0 = torch.array(
+    Mask0 = torch.stack(
         [
-            torch.tensor(
+            torch.Tensor(
                 ([1] * (tj + 1) + mask + [0] * (Tp2 - len(mask) - tj - 1))[:Tp2]
             )
             for tj in range(Tp2)

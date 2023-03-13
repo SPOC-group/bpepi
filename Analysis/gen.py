@@ -2,6 +2,7 @@ import numpy as np
 import random
 import networkx as nx
 import math
+#import sib
 
 def simulate_one_detSIR(G, s_type = "delta", S = 0.01, mask = ["SI"], T_max=100):
     """Function to simulate an epidemic using the deterministic-SIR model
@@ -192,7 +193,7 @@ def generate_snapshot_obs_old(conf, o_type="rho", M=0.0, snap_time=-1):
             obs_sim = [ (i, conf[T,i], snap_time) for i in range(N) if i in obs_list]
     return obs_sim, fS, fI, snap_time
 
-def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
+def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1, i_u_t=-1):
     """Function to generate a snapshot observation, given an epidemic simulation
 
     Args:
@@ -202,15 +203,17 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
         snap_time (int): time at which to take the snapshot. If not specified, this is a random int between 0 and T. If the the time is not int, 
             we use the following formula: t1=flor(T), p=T-t1, and we extract with probability (1-p) observations at time t1 and with probability p at time t1+1. 
             On average we have observations at time T. 
+        i_u_t (int): if -1, generate the snapshot at snap_time. If not, generate the snapshot at time t=min(snap_time,i_u_t)
 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
         fS (float): fraction of susceptible nodes when taking the tests
         fI (float): fraction of infected nodes when taking the tests
-        tS (int): random time at which the tests were taken
+        t2 (int): Time at which the tests were taken
     """
     N = len(conf[0])
     T = len(conf) - 1
+    if i_u_t != -1: snap_time = min(snap_time,i_u_t)
     if snap_time > T:
         print("warning snap_time > T, observation at T")
 
@@ -257,20 +260,36 @@ def generate_snapshot_obs(conf, o_type="rho", M=0.0, snap_time=-1):
             obs_sim.extend([ (i, conf[T,i], t2) for i in nodes2])
     return obs_sim, fS, fI, t2
 
-def generate_sensors_obs(conf, o_type="rho", M=0.0):
+#def obs_toSIB(obs):
+#    """Function to convert a list of observations into a SIB array
+#
+#    Args:
+#        obs (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
+#        T (int): maximum time of infection
+#        N (int): number of nodes
+#
+#    Returns:
+#        SIB (array): array of shape (T+1) x N containing the observations
+#    """
+#    obs_temp = [(o[0],sib.Test(o[1]==0,o[1]==1,o[1]==1),o[2]) for o in obs]
+#    return obs_temp
+#
+def generate_sensors_obs(conf, o_type="rho", M=0.0, T_max=100):
     """Function to generate a list of observations of a certain fraction of nodes, given an epidemic simulation
 
     Args:
         conf ([type]): [description]
         o_type (string): either "rho" or "n_obs", indicates how to interpret the parameter M
         M (int/float): number of observed nodes/probability of being randomly observed 
+        T_max (int): maximum inferred time of infection by BP
 
     Returns:
         obs_sim (list): list of observations, each of the form (i,0/1,t) where 0/1 is a negative/positive test
     """
     obs_sim = []
+    conf = conf[:T_max+1]
     N = conf.shape[1]
-    T = conf.shape[0] - 1
+    #T = conf.shape[0] - 1
     if o_type == "n_obs":
         obs_list = random.sample(range(N), M)
     for i in range(N):
@@ -278,7 +297,7 @@ def generate_sensors_obs(conf, o_type="rho", M=0.0):
             t_inf = np.nonzero(conf[:, i] == 1)[0]
             t_rec = np.nonzero(conf[:, i] == 2)[0]
             if len(t_inf) == 0:
-                obs_temp = (i, 0, T)
+                obs_temp = (i, 0, T_max)
                 obs_sim.append(obs_temp)
             else:
                 obs_temp = (i, 1, t_inf[0])
@@ -286,10 +305,10 @@ def generate_sensors_obs(conf, o_type="rho", M=0.0):
                 if t_inf[0] > 0:
                     obs_temp = (i, 0, t_inf[0] - 1)
                     obs_sim.append((obs_temp))
-                if len(t_rec) == 0: #This is superflous for SI, but does not change a thing
-                    obs_temp = (i, 1, T)
+                if ( (len(t_rec) == 0) & (t_inf[0]!=T_max) ): #This is superflous for SI, but does not change a thing
+                    obs_temp = (i, 1, T_max)
                     obs_sim.append(obs_temp)
-                else:
+                if (len(t_rec) > 0):
                     obs_temp = (i, 1, t_rec[0] - 1)
                     obs_sim.append((obs_temp))
                     obs_temp = (i, 2, t_rec[0])

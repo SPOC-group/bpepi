@@ -1,4 +1,4 @@
-# import pandas as pd
+import os
 import numpy as np
 import networkx as nx
 import random
@@ -52,7 +52,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
 
     print_space = 1
     if init == 1:
-        for it in range(n_iter):
+        for it in range(it_max):
             e0_max, e0_ave = f.iterate(damp)
             if it % print_space == 0:
                 print_iter([e0_max, e0_ave], it)
@@ -73,7 +73,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
     for it in np.arange(1, n_iter + 1):
-        e_max, e_ave = f.iterate(damp=0.0)
+        e_max, e_ave = f.iterate(damp=0.01)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == n_iter)):
             marg_list.append(f.marginals())
             it_list.append(it)
@@ -88,7 +88,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
     if e_ave < tol2:
         while e_ave > tol:
             it = it + 1
-            e_max, e_ave = f.iterate(damp=0.0)
+            e_max, e_ave = f.iterate(damp=0.01)
             if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
                 marg_list.append(f.marginals())
                 it_list.append(it)
@@ -106,7 +106,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
             marg_list.append(f.marginals())
             it_list.append(it)
-            e_list.append(e)
+            e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
         if it % err_space == 0:
             err_list.append([it, e_max, e_ave])
@@ -250,9 +250,17 @@ def main():
     parser.add_argument(
         "--T_max",
         type=int,
-        default=100,
+        default=500,
         help="Max number of timesteps of the simulation",
     )
+
+    parser.add_argument(
+        "--T_BP_max",
+        type=int,
+        default=100,
+        help="Maximum time of infectionn that can be inferred by BP",
+    )
+
     group_d = parser.add_mutually_exclusive_group(required=True)
     group_d.add_argument(
         "--Delta",
@@ -333,6 +341,12 @@ def main():
         action="store_true",
         help="Run BP from both rnd and inf initializations",
     )
+    parser.add_argument(
+        "--infer_up_to",
+        type=float,
+        default=-1,
+        help="If -1, infer up to the end of the epidemic. If different from -1, gives the maximum time of infection that can be inferred by BP",
+    )
 
     args = parser.parse_args()
     print("arguments:")
@@ -395,6 +409,7 @@ def main():
     tol = args.tol
     n_iter = args.n_iter
     T_max = args.T_max
+    T_BP_max = args.T_BP_max
     mu = 0
     if args.SI == True:
         mask = ["SI"]
@@ -418,6 +433,7 @@ def main():
     save_marginals = args.save_marginals
     SIR_sim = args.SIR_sim
     damp = args.damping
+    infer_up_to = int(np.ceil(args.infer_up_to))
 
     dict_list = []
     t1 = time.time()
@@ -444,34 +460,36 @@ def main():
                                 ground_truth = simulate_one_detSIR(
                                     G, s_type=s_type, S=S, mask=mask, T_max=T_max
                                 )
-                            if len(ground_truth) > T_max:
+                            if ( (len(ground_truth) > T_BP_max ) & (infer_up_to == -1) ):
                                 warnings.warn(
                                     "The simulation exeeds the maximum time limit!"
                                 )
                                 sys.exit()
                             T = len(ground_truth) - 1
+                            if (infer_up_to == -1) : T_BP = T
+                            else : T_BP = infer_up_to
+                            contacts = generate_contacts(G, T_BP, lam)
                             if args.obs_type == "sensors":
                                 list_obs = generate_sensors_obs(
-                                    ground_truth, o_type=o_type, M=M
+                                    ground_truth, o_type=o_type, M=M, T_max=T_BP
                                 )
                                 list_obs_all = generate_sensors_obs(
-                                    ground_truth, o_type="rho", M=1
+                                    ground_truth, o_type="rho", M=1, T_max=T_BP
                                 )
                                 fS = np.mean(ground_truth[-1] == 0)
                                 fI = np.mean(ground_truth[-1] == 1)
-                                TO = T
+                                TO = T_BP
                             else:
                                 list_obs, fS, fI, TO = generate_snapshot_obs(
                                     ground_truth,
                                     o_type=o_type,
                                     M=M,
                                     snap_time=args.snap_time,
+                                    i_u_t = infer_up_to
                                 )
                                 list_obs_all = generate_sensors_obs(
-                                    ground_truth, o_type="rho", M=1
+                                    ground_truth, o_type="rho", M=1, T_max=T_BP
                                 )
-                            T_BP = max(TO, T)
-                            contacts = generate_contacts(G, T_BP, lam)
                             f = {}
                             if (args.rnd_init == True) or (args.rnd_inf_init == True):
                                 f = create_fg(
@@ -571,9 +589,9 @@ def main():
                                 + str(time.time())[-6:]
                             )
                             if print_it:
-                                file_name = "IT_" + args.file_name + timestr + ".xz"
+                                file_name = "IT_" + args.file_name + timestr + f"_{seed}.xz"
                             else:
-                                file_name = args.file_name + timestr + ".xz"
+                                file_name = args.file_name + timestr + f"_{seed}.xz"
 
                             saveObj1 = (
                                 graph,
@@ -603,6 +621,8 @@ def main():
                                 fS,
                                 fI,
                                 TO,
+                                T_BP,
+                                infer_up_to,
                                 Delta,
                                 damp,
                             )
@@ -657,9 +677,9 @@ def main():
     data_frame = pd.DataFrame(dict_list)
     timestr = time.strftime("%Y%m%d-%H%M%S") + "_" + str(time.time())[-6:]
     if print_it:
-        file_name = "DF_IT_" + timestr + ".xz"
+        file_name = "DF_IT_" + timestr + f"_{seed}.xz"
     else:
-        file_name = "DF_" + timestr + ".xz"
+        file_name = "DF_" + timestr + f"_{seed}.xz"
     with lzma.open(save_DF_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
 

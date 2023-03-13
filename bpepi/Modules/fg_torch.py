@@ -38,7 +38,8 @@ class FactorGraph:
             mask_type (string): Type of inference model. If equal to "SIR", it means we are simulating a SIR model
                 and inferring using the dSIR model
         """
-        self.messages = SparseTensor(N, T, contacts, device=device, dtype=dtype)
+        self.messages = SparseTensor(
+            N, T, contacts, device=device, dtype=dtype)
         if verbose:
             print("Messages matrices created")
 
@@ -68,58 +69,12 @@ class FactorGraph:
         if verbose:
             print("Lambdas matrices computed")
 
-        self.observations = torch.ones((N, T + 2))  # creating the mask for observations
-        for o in obs:
-            i_o = o[0]
-            s_o = o[1]
-            t_o = o[2]
-            if s_o == 0:
-                self.observations[i_o][: t_o + 1] = 0
-            if s_o == 1:
-                if mask == ["SI"]:
-                    self.observations[i_o][t_o + 1 :] = 0
-                elif mask_type == "SIR":
-                    obs_mask = torch.tensor(
-                        [
-                            mask[t_o - t - 1]
-                            if ((t < t_o) and (t_o - t <= len(mask)))
-                            else 0
-                            for t in torch.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-                else:
-                    obs_mask = torch.tensor(
-                        [
-                            1 if ((t < t_o) and (t_o - t <= len(mask))) else 0
-                            for t in torch.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-            if s_o == 2:
-                if mask == ["SI"]:
-                    self.observations[i_o][
-                        t_o + 1 :
-                    ] = 0  # Do as if it were I. Is this the best we can do?
-                elif mask_type == "SIR":
-                    obs_mask = torch.tensor(
-                        [
-                            1 - mask[t_o - t - 1]
-                            if ((t < t_o) and (t_o - t <= len(mask)))
-                            else 0
-                            for t in torch.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-                else:
-                    obs_mask = torch.tensor(
-                        [
-                            1 if (t_o - t > len(mask)) else 0
-                            for t in torch.arange(-1, T + 1)
-                        ]
-                    )
-                    self.observations[i_o] = self.observations[i_o] * obs_mask
-
+        # creating the mask for observations
+        self.observations = torch.ones(
+            (self.size, self.time + 2)
+        ) 
+        
+        self.reset_obs(obs)
         if verbose:
             print("Observations array created")
 
@@ -139,11 +94,13 @@ class FactorGraph:
                 # get the inverse of messages just added to self.inc_msgs
                 k = self.messages.adj_list[i][j]
                 self.obs_i = torch.concat((self.obs_i, torch.tensor([i])))
-                jnd = torch.where(torch.tensor(self.messages.adj_list[k]) == i)[0]
+                jnd = torch.where(torch.tensor(
+                    self.messages.adj_list[k]) == i)[0]
                 self.out_msgs = torch.concat(
                     (self.out_msgs, self.messages.idx_list[k][jnd]), axis=0
                 )
-        self.repeat_deg = torch.tensor(self.repeat_deg, dtype=torch.int, device=device)
+        self.repeat_deg = torch.tensor(
+            self.repeat_deg, dtype=torch.int, device=device)
         self.reduce_idxs = torch.arange(
             len(self.repeat_deg), device=device
         ).repeat_interleave(self.repeat_deg)
@@ -190,21 +147,15 @@ class FactorGraph:
         old_msgs = torch.clone(self.messages.values)
         msgs_tilde = old_msgs[self.inc_msgs]
 
-        # print(msgs_tilde)
-        # print(self.Lambda0_tilde)
-
         # calculate gamma matrices
-        gamma0_hat = torch.sum(msgs_tilde * self.Lambda0_tilde, dim=1, keepdim=True)
-        gamma1_hat = torch.sum(msgs_tilde * self.Lambda1_tilde, dim=1, keepdim=True)
-        # print("GAMMA HAT")
-        # print(gamma0_hat)
-        # print("END GAMMA HAT")
+        gamma0_hat = torch.sum(
+            msgs_tilde * self.Lambda0_tilde, dim=1, keepdim=True)
+        gamma1_hat = torch.sum(
+            msgs_tilde * self.Lambda1_tilde, dim=1, keepdim=True)
 
         gamma0 = self.get_gamma(gamma0_hat, self.reduce_idxs, self.repeat_deg)
         gamma1 = self.get_gamma(gamma1_hat, self.reduce_idxs, self.repeat_deg)
-        # print("GAMMA")
-        # print(gamma0)
-        # print("END GAMMA")
+
         # calculate part one of update
         one_obs = (1 - self.delta) * torch.reshape(
             self.observations[self.obs_i], (len(self.out_msgs), 1, T + 2)
@@ -215,7 +166,7 @@ class FactorGraph:
         one_main = torch.clip(
             self.Lambda1_tilde * gamma1 - self.Lambda0_tilde * gamma0, 0, 1
         )
-        one = torch.permute(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
+        one = torch.permute(one_obs * one_main, (0, 2, 1))[:, 1: T + 1, :]
 
         # calculate part two of update
         two_obs = self.delta * self.observations[self.obs_i][:, 0]
@@ -223,7 +174,8 @@ class FactorGraph:
         two_main = self.get_gamma(two_msgs, self.reduce_idxs, self.repeat_deg)
         two = torch.reshape(
             torch.tile(
-                torch.reshape(two_obs * two_main, (len(self.out_msgs), 1)), (1, T + 2)
+                torch.reshape(two_obs * two_main,
+                              (len(self.out_msgs), 1)), (1, T + 2)
             ),
             (len(self.out_msgs), 1, T + 2),
         )
@@ -232,9 +184,11 @@ class FactorGraph:
         three_obs = (1 - self.delta) * torch.reshape(
             self.observations[self.obs_i][:, T + 1], (len(self.out_msgs), 1)
         )
-        gamma1_reshaped = torch.reshape(gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
+        gamma1_reshaped = torch.reshape(
+            gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
         three_main = self.Lambda1_tilde[:, :, T + 1] * gamma1_reshaped
-        three = torch.reshape(three_obs * three_main, (len(self.out_msgs), 1, T + 2))
+        three = torch.reshape(three_obs * three_main,
+                              (len(self.out_msgs), 1, T + 2))
 
         # update the message values
         update_one = torch.concat(
@@ -271,12 +225,13 @@ class FactorGraph:
             ),
             axis=1,
         )
-        # print(update_one, update_two, update_three)
         new_msgs = update_one + update_two + update_three
         norm = torch.reshape(
             torch.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1)
         )
         norm_msgs = new_msgs / norm
+
+        torch.nan_to_num(norm_msgs, nan=1./(self.time+2), out=norm_msgs)
         self.messages.values[self.out_msgs] = (1 - damp) * norm_msgs + damp * old_msgs[
             self.out_msgs
         ]  # Add dumping
@@ -330,7 +285,8 @@ class FactorGraph:
                 torch.sum(inc_msgs[:, :, 0], axis=1), axis=0
             )
             self.messages.values[i][T + 1] = torch.transpose(
-                (1 - self.delta) * inc_lambda1[0][:, T + 1] * gamma1_ki[0][T + 1]
+                (1 - self.delta) *
+                inc_lambda1[0][:, T + 1] * gamma1_ki[0][T + 1]
             )
             norm = self.messages.values[i].sum()  # normalize the messages
             self.messages.values[i] = self.messages.values[i] / norm
@@ -423,7 +379,8 @@ class FactorGraph:
                 * torch.prod(torch.sum(inc_msgs[:, :, 0], axis=1), axis=0)
             )
             dummy_array[T + 1] = torch.t(
-                (1 - self.delta) * self.observations[i][T + 1] * gamma1_ki[0][T + 1]
+                (1 - self.delta) *
+                self.observations[i][T + 1] * gamma1_ki[0][T + 1]
             )
             log_zi = log_zi + torch.log(dummy_array.sum())
 
@@ -453,7 +410,7 @@ class FactorGraph:
             (self.size, self.time + 2)
         )  # creating the mask for observations
         for o in obs:
-            if o[1] == 1:
-                self.observations[o[0]][o[2] + 1 :] = 0
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
+            else:
+                self.observations[o[0]][o[2] + 1:] = 0

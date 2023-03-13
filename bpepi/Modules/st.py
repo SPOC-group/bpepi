@@ -32,12 +32,13 @@ class SparseTensor:
 
         self.N = N
         self.T = T
-
-        edge_list = np.unique(
-            np.asarray(contacts, dtype="int")[:, :2], axis=0
-        )  # We get the contact network directly from the list of contacts
-        edge_list = np.concatenate((edge_list, np.flip(edge_list, 1)), axis=0)
-        edge_list = np.unique(edge_list, axis=0)
+        if not contacts: edge_list= []
+        else:
+            edge_list = np.unique(
+                np.asarray(contacts, dtype="int")[:, :2], axis=0
+            )  # We get the contact network directly from the list of contacts
+            edge_list = np.concatenate((edge_list, np.flip(edge_list, 1)), axis=0)
+            edge_list = np.unique(edge_list, axis=0)
         self.num_direct_edges = len(edge_list)
 
         for e in edge_list:
