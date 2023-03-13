@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=bpepi
-#SBATCH --time=12:00:00
+#SBATCH --time=48:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=36
 #SBATCH --output=run.log
-#SBATCH --mem=4GB
-#SBATCH --mail-type=FAIL
+#SBATCH --mem=128GB
+#SBATCH --mail-type=ALL
 #SBATCH --mail-user=indaco.biazzo@epfl.ch
 
 python="/home/biazzo/miniconda3/envs/sib/bin/python"
@@ -14,9 +14,9 @@ script="/home/biazzo/git/bpepi/Analysis/sim_oc_dSIR.py"
 save_dir="./data/snap_indaco/npippo/"
 save_DF_dir="./data_frames/snap_df_indaco/npippo/"
 graph="rrg"
-N=2000
+N=10000
 d=3
-lam=0.6
+lam=0.9
 #n_sources=1
 delta=0.09
 rho=1.
