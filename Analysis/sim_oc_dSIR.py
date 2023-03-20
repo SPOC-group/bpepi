@@ -716,8 +716,19 @@ def main():
                                 )
                             elif args.rnd_inf_init == True:
                                 init_type = 2
+                                if (len(mess_list_rnd) < len(mess_list_inf)):
+                                    l = len(mess_list_rnd)
+                                    SE_mess = [np.mean((mess_list_rnd[i]-mess_list_inf[i])**2) for i in range(l)]
+                                    for i_se in np.arange(l,len(mess_list_inf)):
+                                        SE_mess.append(np.mean((mess_list_rnd[l-1]-mess_list_inf[i_se])**2))
+                                else:
+                                    l = len(mess_list_inf)
+                                    SE_mess = [np.mean((mess_list_rnd[i]-mess_list_inf[i])**2) for i in range(l)]
+                                    for i_se in np.arange(l,len(mess_list_rnd)):
+                                        SE_mess.append(np.mean((mess_list_inf[l-1]-mess_list_rnd[i_se])**2))
+
                                 saveObj2 = (
-                                    [np.mean((mess_list_rnd[i]-mess_list_inf[i])**2) for i in range(len(mess_list_rnd)) ],
+                                    SE__mess,
                                     marg_list_rnd,
                                     marg_list_inf,
                                     eR_list,
