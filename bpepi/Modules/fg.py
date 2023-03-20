@@ -315,11 +315,11 @@ class FactorGraph:
             marginals (np.array): Array of the BP marginals, of shape N x (T+2)
         """
 
-        mess = SparseTensor(
-            Tensor_to_copy=self.messages
-        )
-        mess.values = np.copy(self.messages.values)
-        return mess
+        #mess = SparseTensor(
+        #    Tensor_to_copy=self.messages
+        #)
+        #mess.values = np.copy(self.messages.values)
+        return self.messages.values
 
     def loglikelihood(self):
         """Computes the LogLikelihood from the BP messages

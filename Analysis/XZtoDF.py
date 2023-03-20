@@ -70,7 +70,7 @@ def main():
     with lzma.open(save_dir + file_name, "wb") as f:
         pickle.dump(data_frame, f)
 
-def data_to_dict(data1,data2,init_type):
+def data_to_dict(data1,data2,init_type): #TO BE CHANGED FOR THE CASE DIFFERENT FROM RND+INF
     
     if init_type== 0:
         single_dict_list = DtoD(data1,data2,init="rnd")
@@ -78,7 +78,8 @@ def data_to_dict(data1,data2,init_type):
     elif init_type== 1:
         single_dict_list = DtoD(data1,data2,init="inf")
     elif init_type== 2:
-        [marg_list_rnd, 
+        [SEmess_list,
+        marg_list_rnd, 
         marg_list_inf,
         eR_list,
         eI_list,
@@ -90,6 +91,7 @@ def data_to_dict(data1,data2,init_type):
         errI_list
         ] = data2
         data2R = [
+        SEmess_list,
         marg_list_rnd, 
         eR_list,
         itR_list,
@@ -97,6 +99,7 @@ def data_to_dict(data1,data2,init_type):
         errR_list]
         single_dict_list = DtoD(data1,data2R,init="rnd") 
         data2I = [
+        SEmess_list,
         marg_list_inf, 
         eI_list,
         itI_list,
@@ -171,7 +174,8 @@ def DtoD(data1,data2,init):
         r"$R_{SE}$",
         r"$R_{MSE}$",
         r"$\delta R_{SE}$",
-        r"ConvChecks"
+        r"ConvChecks",
+        r"$SE_{mess}$"
     ]
     [graph, 
     N,
@@ -205,7 +209,8 @@ def DtoD(data1,data2,init):
     Delta,
     damp
     ] = data1  
-    [marg_list, 
+    [SEmess_list,
+    marg_list, 
     e_list,
     it_list,
     logL_list,
@@ -258,6 +263,7 @@ def DtoD(data1,data2,init):
         movTt = (movT - movT_rnd) / (1 + 1e-12 - movT_rnd)
         Rse = (se_rnd - se) / se_rnd
         Rmse = (mse_rnd - mse) / mse_rnd
+        SEmess = SEmess_list[it_idx]
         
         values = [
             init,
@@ -316,7 +322,8 @@ def DtoD(data1,data2,init):
             Rse,
             Rmse,
             Rse - Rmse,
-            err_list
+            err_list,
+            SEmess
         ]
         dict_list.append(dict(zip(keys, values))) 
 

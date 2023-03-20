@@ -69,6 +69,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
     # BP iteration
     if print_it:
         marg_list = [f.marginals()]
+        mess_list = [f.get_messages()]
         it_list = [0]
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
@@ -76,6 +77,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         e_max, e_ave = f.iterate(damp=0.01)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == n_iter)):
             marg_list.append(f.marginals())
+            mess_list.append(f.get_messages())
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
@@ -91,6 +93,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
             e_max, e_ave = f.iterate(damp=0.01)
             if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
                 marg_list.append(f.marginals())
+                mess_list.append(f.get_messages())
                 it_list.append(it)
                 e_list.append(e_ave)
                 logL_list.append(f.loglikelihood())
@@ -105,6 +108,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         e_max, e_ave = f.iterate(damp=damp)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
             marg_list.append(f.marginals())
+            mess_list.append(f.get_messages())
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
@@ -119,6 +123,7 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
         e_max, e_ave = f.iterate(damp=damp * 2)
         if print_it and ((it % iter_space == 0) or (e_ave < tol) or (it == it_max)):
             marg_list.append(f.marginals())
+            mess_list.append(f.get_messages())
             it_list.append(it)
             e_list.append(e_ave)
             logL_list.append(f.loglikelihood())
@@ -131,13 +136,14 @@ def BPloop(f, list_obs, n_iter, tol, print_it, iter_space, tol2, it_max, init, d
 
     if not print_it:
         marg_list = [f.marginals()]
+        mess_list = [f.get_messages()]
         it_list = [it]
         e_list = [e_ave]
         logL_list = [f.loglikelihood()]
     if it != it_max:
         err_list.append([it, e_max, e_ave])
 
-    return marg_list, e_list, it_list, logL_list, err_list
+    return mess_list, marg_list, e_list, it_list, logL_list, err_list
 
 
 def main():
@@ -491,7 +497,7 @@ def main():
                                     ground_truth, o_type="rho", M=1, T_max=T_BP
                                 )
                             f = {}
-                            if (args.rnd_init == True) or (args.rnd_inf_init == True):
+                            if (args.rnd_init == True):
                                 f = create_fg(
                                     N=N,
                                     T=T_BP,
@@ -503,6 +509,7 @@ def main():
                                     torch=args.pytorch,
                                 )
                                 (
+                                    _,
                                     marg_list_rnd,
                                     eR_list,
                                     itR_list,
@@ -520,7 +527,7 @@ def main():
                                     init=1,
                                     damp=damp,
                                 )
-                            if (args.inf_init == True) or (args.rnd_inf_init == True):
+                            elif (args.inf_init == True):
                                 f = create_fg(
                                     N=N,
                                     T=T_BP,
@@ -532,6 +539,7 @@ def main():
                                     torch=args.pytorch,
                                 )
                                 (
+                                    _,
                                     marg_list_inf,
                                     eI_list,
                                     itI_list,
@@ -549,7 +557,7 @@ def main():
                                     init=1,
                                     damp=damp,
                                 )
-                            if args.unif_init == True:
+                            elif args.unif_init == True:
                                 f = create_fg(
                                     N=N,
                                     T=T_BP,
@@ -561,6 +569,7 @@ def main():
                                     torch=args.pytorch,
                                 )
                                 (
+                                    _,
                                     marg_list_unif,
                                     eU_list,
                                     itU_list,
@@ -578,6 +587,67 @@ def main():
                                     init=0,
                                     damp=damp,
                                 )
+                            elif args.rnd_inf_init == True:
+                                f = create_fg(
+                                    N=N,
+                                    T=T_BP,
+                                    contacts=contacts,
+                                    obs=[],
+                                    delta=pseed,
+                                    mask=mask,
+                                    mask_type=mask_type,
+                                    torch=args.pytorch,
+                                )
+                                (
+                                    mess_list_rnd,
+                                    marg_list_rnd,
+                                    eR_list,
+                                    itR_list,
+                                    logLR_list,
+                                    errR_list,
+                                ) = BPloop(
+                                    f,
+                                    list_obs,
+                                    n_iter,
+                                    tol,
+                                    print_it,
+                                    iter_space,
+                                    tol2,
+                                    it_max,
+                                    init=1,
+                                    damp=damp,
+                                )
+
+                                f = create_fg(
+                                    N=N,
+                                    T=T_BP,
+                                    contacts=contacts,
+                                    obs=list_obs_all,
+                                    delta=pseed,
+                                    mask=mask,
+                                    mask_type=mask_type,
+                                    torch=args.pytorch,
+                                )
+                                (
+                                    mess_list_inf
+                                    marg_list_inf,
+                                    eI_list,
+                                    itI_list,
+                                    logLI_list,
+                                    errI_list,
+                                ) = BPloop(
+                                    f,
+                                    list_obs,
+                                    n_iter,
+                                    tol,
+                                    print_it,
+                                    iter_space,
+                                    tol2,
+                                    it_max,
+                                    init=1,
+                                    damp=damp,
+                                )
+
                             print(
                                 f"\r N: {i_N+1}/{len(N_table)} - d: {i_d+1}/{len(d_table)} - lam: {i_l+1}/{len(lam_table)} - S: {i_S+1}/{len(sources_table)} - M: {i_M+1}/{len(obs_table)} - sim: {sim+1}/{n_sim} - time = {time.time()-t2:.2f} s - total time = {time.time()-t1:.0f} s"
                             )
@@ -635,7 +705,7 @@ def main():
                                     logLR_list,
                                     errR_list,
                                 )
-                            if args.inf_init == True:
+                            elif args.inf_init == True:
                                 init_type = 1
                                 saveObj2 = (
                                     marg_list_inf,
@@ -644,9 +714,10 @@ def main():
                                     logLI_list,
                                     errI_list,
                                 )
-                            if args.rnd_inf_init == True:
+                            elif args.rnd_inf_init == True:
                                 init_type = 2
                                 saveObj2 = (
+                                    [np.mean((mess_list_rnd[i]-mess_list_inf[i])**2) for i in range(len(mess_list_rnd)) ],
                                     marg_list_rnd,
                                     marg_list_inf,
                                     eR_list,
@@ -658,7 +729,7 @@ def main():
                                     errR_list,
                                     errI_list,
                                 )
-                            if args.unif_init == True:
+                            elif args.unif_init == True:
                                 init_type = 3
                                 saveObj2 = (
                                     marg_list_unif,
