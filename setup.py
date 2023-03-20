@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name="bpepi",
-    version="0.1dev",
+    version="0.2dev",
     packages=["bpepi", "bpepi.Modules"],
     install_requires=[
         "numpy",
