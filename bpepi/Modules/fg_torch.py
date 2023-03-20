@@ -341,6 +341,19 @@ class FactorGraph:
             #    print(f"OUT{torch.transpose(out_msg)}")
             marginals[n, :] = marg / marg.sum()
         return marginals.numpy()
+    
+    def get_messages(self):
+        """Computes the array of the BP marginals for each node
+
+        Returns:
+            marginals (np.array): Array of the BP marginals, of shape N x (T+2)
+        """
+
+        #mess = SparseTensor(
+        #    Tensor_to_copy=self.messages
+        #)
+        #mess.values = np.copy(self.messages.values)
+        return self.messages.values
 
     def loglikelihood(self):
         """Computes the LogLikelihood from the BP messages
