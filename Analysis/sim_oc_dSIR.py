@@ -629,7 +629,7 @@ def main():
                                     torch=args.pytorch,
                                 )
                                 (
-                                    mess_list_inf
+                                    mess_list_inf,
                                     marg_list_inf,
                                     eI_list,
                                     itI_list,

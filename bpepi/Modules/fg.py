@@ -319,7 +319,7 @@ class FactorGraph:
         #    Tensor_to_copy=self.messages
         #)
         #mess.values = np.copy(self.messages.values)
-        return self.messages.values
+        return np.copy(self.messages.values)
 
     def loglikelihood(self):
         """Computes the LogLikelihood from the BP messages
