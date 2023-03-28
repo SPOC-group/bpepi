@@ -76,7 +76,8 @@ class FactorGraph:
                 )
 
         self.reduce_idxs = np.delete(np.cumsum(self.repeat_deg), -1)
-        self.reduce_idxs = np.concatenate((np.array([0]), self.reduce_idxs), axis=0)
+        self.reduce_idxs = np.concatenate(
+            (np.array([0]), self.reduce_idxs), axis=0)
 
         if verbose:
             print("Lists of neighbors created")
@@ -99,7 +100,7 @@ class FactorGraph:
             arr_5 (array): final array
         """
         epsilon = 1e-20
-        #print(epsilon)
+        # print(epsilon)
         arr[arr == 0] = epsilon
         arr_2 = np.log(arr)
         arr_copy = np.copy(arr_2)
@@ -120,8 +121,10 @@ class FactorGraph:
         msgs_tilde = old_msgs[self.inc_msgs]
 
         # calculate gamma matrices
-        gamma0_hat = np.sum(msgs_tilde * self.Lambda0_tilde, axis=1, keepdims=1)
-        gamma1_hat = np.sum(msgs_tilde * self.Lambda1_tilde, axis=1, keepdims=1)
+        gamma0_hat = np.sum(
+            msgs_tilde * self.Lambda0_tilde, axis=1, keepdims=1)
+        gamma1_hat = np.sum(
+            msgs_tilde * self.Lambda1_tilde, axis=1, keepdims=1)
         gamma0 = self.get_gamma(gamma0_hat, self.reduce_idxs, self.repeat_deg)
         gamma1 = self.get_gamma(gamma1_hat, self.reduce_idxs, self.repeat_deg)
 
@@ -135,14 +138,15 @@ class FactorGraph:
         one_main = np.clip(
             self.Lambda1_tilde * gamma1 - self.Lambda0_tilde * gamma0, 0, 1
         )
-        one = np.transpose(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
+        one = np.transpose(one_obs * one_main, (0, 2, 1))[:, 1: T + 1, :]
 
         # calculate part two of update
         two_obs = self.delta * self.observations[self.obs_i][:, 0]
         two_msgs = np.sum(msgs_tilde[:, :, 0], axis=1)
         two_main = self.get_gamma(two_msgs, self.reduce_idxs, self.repeat_deg)
         two = np.reshape(
-            np.tile(np.reshape(two_obs * two_main, (len(self.out_msgs), 1)), T + 2),
+            np.tile(np.reshape(two_obs * two_main,
+                    (len(self.out_msgs), 1)), T + 2),
             (len(self.out_msgs), 1, T + 2),
         )
 
@@ -150,9 +154,11 @@ class FactorGraph:
         three_obs = (1 - self.delta) * np.reshape(
             self.observations[self.obs_i][:, T + 1], (len(self.out_msgs), 1)
         )
-        gamma1_reshaped = np.reshape(gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
+        gamma1_reshaped = np.reshape(
+            gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
         three_main = self.Lambda1_tilde[:, :, T + 1] * gamma1_reshaped
-        three = np.reshape(three_obs * three_main, (len(self.out_msgs), 1, T + 2))
+        three = np.reshape(three_obs * three_main,
+                           (len(self.out_msgs), 1, T + 2))
 
         # update the message values
         update_one = np.concatenate(
@@ -170,7 +176,8 @@ class FactorGraph:
             (np.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
         )
         new_msgs = update_one + update_two + update_three
-        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)),
+                          (len(self.out_msgs), 1, 1))
         norm_msgs = new_msgs / norm
         self.messages.values[self.out_msgs] = (1 - damp) * norm_msgs + damp * old_msgs[
             self.out_msgs
@@ -191,8 +198,10 @@ class FactorGraph:
         msgs_tilde = old_msgs[self.inc_msgs]
 
         # calculate gamma matrices
-        gamma0_hat = np.sum(msgs_tilde * self.Lambda0_tilde, axis=1, keepdims=1)
-        gamma1_hat = np.sum(msgs_tilde * self.Lambda1_tilde, axis=1, keepdims=1)
+        gamma0_hat = np.sum(
+            msgs_tilde * self.Lambda0_tilde, axis=1, keepdims=1)
+        gamma1_hat = np.sum(
+            msgs_tilde * self.Lambda1_tilde, axis=1, keepdims=1)
         gamma0 = self.get_gamma(gamma0_hat, self.reduce_idxs, self.repeat_deg)
         gamma1 = self.get_gamma(gamma1_hat, self.reduce_idxs, self.repeat_deg)
 
@@ -206,14 +215,15 @@ class FactorGraph:
         one_main = np.clip(
             self.Lambda1_tilde * gamma1 - self.Lambda0_tilde * gamma0, 0, 1
         )
-        one = np.transpose(one_obs * one_main, (0, 2, 1))[:, 1 : T + 1, :]
+        one = np.transpose(one_obs * one_main, (0, 2, 1))[:, 1: T + 1, :]
 
         # calculate part two of update
         two_obs = self.delta * self.observations[self.obs_i][:, 0]
         two_msgs = np.sum(msgs_tilde[:, :, 0], axis=1)
         two_main = self.get_gamma(two_msgs, self.reduce_idxs, self.repeat_deg)
         two = np.reshape(
-            np.tile(np.reshape(two_obs * two_main, (len(self.out_msgs), 1)), T + 2),
+            np.tile(np.reshape(two_obs * two_main,
+                    (len(self.out_msgs), 1)), T + 2),
             (len(self.out_msgs), 1, T + 2),
         )
 
@@ -221,9 +231,11 @@ class FactorGraph:
         three_obs = (1 - self.delta) * np.reshape(
             self.observations[self.obs_i][:, T + 1], (len(self.out_msgs), 1)
         )
-        gamma1_reshaped = np.reshape(gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
+        gamma1_reshaped = np.reshape(
+            gamma1[:, 0, T + 1], (len(self.out_msgs), 1))
         three_main = self.Lambda1_tilde[:, :, T + 1] * gamma1_reshaped
-        three = np.reshape(three_obs * three_main, (len(self.out_msgs), 1, T + 2))
+        three = np.reshape(three_obs * three_main,
+                           (len(self.out_msgs), 1, T + 2))
 
         # update the message values
         update_one = np.concatenate(
@@ -241,7 +253,8 @@ class FactorGraph:
             (np.zeros((len(self.out_msgs), T + 1, T + 2)), three), axis=1
         )
         new_msgs = update_one + update_two + update_three
-        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)), (len(self.out_msgs), 1, 1))
+        norm = np.reshape(np.sum(new_msgs, axis=(1, 2)),
+                          (len(self.out_msgs), 1, 1))
         norm_msgs = new_msgs / norm
         self.messages.values[self.out_msgs] = (1 - damp) * norm_msgs + damp * old_msgs[
             self.out_msgs
@@ -304,8 +317,10 @@ class FactorGraph:
         pair_marg = SparseTensor(
             Tensor_to_copy=self.messages
         )
-        pair_marg.values = self.messages.values[self.out_msgs] * (np.transpose(self.messages.values, axes=(0,2,1))[self.inc_msgs])
-        pair_marg.values = pair_marg.values/ np.sum(pair_marg.values, axis=(1,2))[:,np.newaxis,np.newaxis]
+        pair_marg.values = self.messages.values[self.out_msgs] * (
+            np.transpose(self.messages.values, axes=(0, 2, 1))[self.inc_msgs])
+        pair_marg.values = pair_marg.values / \
+            np.sum(pair_marg.values, axis=(1, 2))[:, np.newaxis, np.newaxis]
         return pair_marg
 
     def get_messages(self):
@@ -315,10 +330,10 @@ class FactorGraph:
             marginals (np.array): Array of the BP marginals, of shape N x (T+2)
         """
 
-        #mess = SparseTensor(
+        # mess = SparseTensor(
         #    Tensor_to_copy=self.messages
-        #)
-        #mess.values = np.copy(self.messages.values)
+        # )
+        # mess.values = np.copy(self.messages.values)
         return np.copy(self.messages.values)
 
     def loglikelihood(self):
@@ -338,10 +353,12 @@ class FactorGraph:
             inc_lambda1 = self.Lambda1.get_neigh_i(i)
 
             gamma0_ki = np.reshape(
-                np.prod(np.sum(inc_lambda0 * inc_msgs, axis=1), axis=0), (1, T + 2)
+                np.prod(np.sum(inc_lambda0 * inc_msgs, axis=1),
+                        axis=0), (1, T + 2)
             )
             gamma1_ki = np.reshape(
-                np.prod(np.sum(inc_lambda1 * inc_msgs, axis=1), axis=0), (1, T + 2)
+                np.prod(np.sum(inc_lambda1 * inc_msgs, axis=1),
+                        axis=0), (1, T + 2)
             )
             dummy_array = np.transpose(
                 (
@@ -356,7 +373,8 @@ class FactorGraph:
                 * np.prod(np.sum(inc_msgs[:, :, 0], axis=1), axis=0)
             )
             dummy_array[T + 1] = np.transpose(
-                (1 - self.delta) * self.observations[i][T + 1] * gamma1_ki[0][T + 1]
+                (1 - self.delta) *
+                self.observations[i][T + 1] * gamma1_ki[0][T + 1]
             )
             log_zi = log_zi + np.log(dummy_array.sum())
 
@@ -389,7 +407,7 @@ class FactorGraph:
             if o[1] == 0:
                 self.observations[o[0]][: o[2] + 1] = 0
             else:
-                self.observations[o[0]][o[2] + 1 :] = 0
+                self.observations[o[0]][o[2] + 1:] = 0
 
 
 class pop_dyn(FactorGraph):
@@ -408,13 +426,17 @@ class pop_dyn(FactorGraph):
         for i in range(N):
             indices = [np.random.randint(0, N) for _ in range(c - 1)]
             inc_msgs = np.array([old_msgs[idx] for idx in indices])
-            inc_lambda0 = np.array([self.Lambda0.values[idx] for idx in indices])
-            inc_lambda1 = np.array([self.Lambda1.values[idx] for idx in indices])
+            inc_lambda0 = np.array([self.Lambda0.values[idx]
+                                   for idx in indices])
+            inc_lambda1 = np.array([self.Lambda1.values[idx]
+                                   for idx in indices])
             gamma0_ki = np.reshape(
-                np.prod(np.sum(inc_lambda0 * inc_msgs, axis=1), axis=0), (1, T + 2)
+                np.prod(np.sum(inc_lambda0 * inc_msgs, axis=1),
+                        axis=0), (1, T + 2)
             )
             gamma1_ki = np.reshape(
-                np.prod(np.sum(inc_lambda1 * inc_msgs, axis=1), axis=0), (1, T + 2)
+                np.prod(np.sum(inc_lambda1 * inc_msgs, axis=1),
+                        axis=0), (1, T + 2)
             )
             self.messages.values[i] = np.transpose(
                 (
@@ -427,7 +449,8 @@ class pop_dyn(FactorGraph):
                 np.sum(inc_msgs[:, :, 0], axis=1), axis=0
             )
             self.messages.values[i][T + 1] = np.transpose(
-                (1 - self.delta) * inc_lambda1[0][:, T + 1] * gamma1_ki[0][T + 1]
+                (1 - self.delta) *
+                inc_lambda1[0][:, T + 1] * gamma1_ki[0][T + 1]
             )
             norm = self.messages.values[i].sum()  # normalize the messages
             self.messages.values[i] = self.messages.values[i] / norm

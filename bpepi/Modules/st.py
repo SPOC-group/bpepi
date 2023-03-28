@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 
 
 class SparseTensor:
@@ -32,12 +31,14 @@ class SparseTensor:
 
         self.N = N
         self.T = T
-        if not contacts: edge_list= []
+        if not contacts:
+            edge_list = []
         else:
             edge_list = np.unique(
                 np.asarray(contacts, dtype="int")[:, :2], axis=0
             )  # We get the contact network directly from the list of contacts
-            edge_list = np.concatenate((edge_list, np.flip(edge_list, 1)), axis=0)
+            edge_list = np.concatenate(
+                (edge_list, np.flip(edge_list, 1)), axis=0)
             edge_list = np.unique(edge_list, axis=0)
         self.num_direct_edges = len(edge_list)
 
@@ -65,7 +66,8 @@ class SparseTensor:
         self.T = Tensor.T
         self.num_direct_edges = Tensor.num_direct_edges
         self.degree = Tensor.degree
-        self.values = np.full((self.num_direct_edges, self.T + 2, self.T + 2), 1.0)
+        self.values = np.full(
+            (self.num_direct_edges, self.T + 2, self.T + 2), 1.0)
 
     def get_idx_ij(self, i, j):
         """Returns index corresponding to the (i, j) entrance of the tensor
@@ -159,7 +161,9 @@ def compute_Lambdas(Lambda0, Lambda1, contacts):  # change to loop over full con
     Lambda1.values = np.cumprod(Lambda1.values, axis=2)
     Lambda0.values = np.cumprod(Lambda0.values, axis=2)
 
-def compute_Lambdas_dSIR(Lambda0, Lambda1, contacts, mask):  # added mask to work with deterministic SIR model
+
+# added mask to work with deterministic SIR model
+def compute_Lambdas_dSIR(Lambda0, Lambda1, contacts, mask):
     """Computes (once and for all) the entrances of the tensors Lambda0 and Lambda1, starting from the list of contacts
     Args:
         Lambda0 (SparseTensor): SparseTensor useful to update the BP messages
@@ -185,8 +189,10 @@ def compute_Lambdas_dSIR(Lambda0, Lambda1, contacts, mask):  # added mask to wor
     Lambda0.values[:, a, b] = 0
 
     # Compute and apply the infectivity masks
-    Mask1 = np.array([ np.asarray(([1]*(tj+2) + mask + [0]*(Tp2-len(mask)-tj-2) )[:Tp2]) for tj in range(Tp2) ])
-    Mask0 = np.array([ np.asarray(([1]*(tj+1) + mask + [0]*(Tp2-len(mask)-tj-1) )[:Tp2]) for tj in range(Tp2) ])
+    Mask1 = np.array([np.asarray(
+        ([1]*(tj+2) + mask + [0]*(Tp2-len(mask)-tj-2))[:Tp2]) for tj in range(Tp2)])
+    Mask0 = np.array([np.asarray(
+        ([1]*(tj+1) + mask + [0]*(Tp2-len(mask)-tj-1))[:Tp2]) for tj in range(Tp2)])
 
     Lambda1.values[:] = Lambda1.values[:]*Mask1
     Lambda0.values[:] = Lambda0.values[:]*Mask0

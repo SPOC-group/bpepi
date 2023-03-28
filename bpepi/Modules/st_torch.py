@@ -1,5 +1,3 @@
-import numpy as np
-import copy
 import torch
 
 
@@ -54,19 +52,21 @@ class SparseTensor:
         self.dtype = dtype
         contacts = torch.tensor(contacts)
 
-        if contacts.nelement() == 0: 
+        if contacts.nelement() == 0:
             edge_list = []
-        else: 
+        else:
             edge_list = torch.unique(
                 contacts[:, :2].to(dtype=torch.long), dim=0
             )  # We get the contact network directly from the list of contacts
-            edge_list = torch.concat((edge_list, torch.flip(edge_list, [1])), dim=0)
+            edge_list = torch.concat(
+                (edge_list, torch.flip(edge_list, [1])), dim=0)
             edge_list = torch.unique(edge_list, dim=0)
         self.num_direct_edges = len(edge_list)
 
         for e in edge_list:
             self.adj_list[e[0]].append(e[1])
-        self.degree = torch.tensor([len(a) for a in self.adj_list], device=self.device)
+        self.degree = torch.tensor(
+            [len(a) for a in self.adj_list], device=self.device)
         c = 0
         for d in self.degree:
             self.idx_list.append(torch.arange(c, c + d, device=self.device))

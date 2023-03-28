@@ -2,11 +2,10 @@ from distutils.core import setup
 
 setup(
     name="bpepi",
-    version="0.2dev",
+    version="0.3dev",
     packages=["bpepi", "bpepi.Modules"],
     install_requires=[
         "numpy",
-        "networkx",
         "torch",
     ],  # external packages as dependencies
     license="Apache License Version 2.0,",
