@@ -11,8 +11,9 @@ Authors: Antoine Aragon, Indaco Biazzo, Davide Ghio and Lenka Zdeborová. Last u
 - `networkx`
 
 ## Installation
+Inside the bpepi folder run:
 
-run `python setup.py install`
+`pip install .`
 
 ## Documentation
 
