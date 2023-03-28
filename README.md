@@ -8,7 +8,7 @@ Authors: Antoine Aragon, Indaco Biazzo, Davide Ghio and Lenka Zdeborová. Last u
 
 - `python3`
 - `numpy`
-- `networkx`
+- `pytorch`
 
 ## Installation
 Inside the bpepi folder run:
