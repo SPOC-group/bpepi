@@ -8,11 +8,11 @@ Antoine Aragon, Indaco Biazzo, Davide Ghio, and Lenka Zdeborová
 
 ## Description
 
-BPEPI provides tools for analyzing and inferring epidemic spreading patterns using belief propagation techniques. It is particularly useful for researchers and practitioners working with compartmental models such as SI (Susceptible-Infected) and SIR (Susceptible-Infected-Recovered).
+BPEPI provides tools for analyzing and inferring epidemic spreading patterns using belief propagation techniques. It is particularly useful for working with compartmental models such as SI (Susceptible-Infected) and dSIR (deterministic Susceptible-Infected-Recovered).
 
 ## Features
 
-- Belief propagation algorithm for SI and SIR models
+- Belief propagation algorithm for SI and dSIR models
 - Efficient sparse tensor representation for contact networks
 - Customizable observation handling
 - Flexible inference model selection
@@ -104,19 +104,4 @@ This class represents an N x N x T x T sparse tensor as a 2 x num_edges x T x T 
 
 If you use BPEPI in your research, please cite the following paper:
 
-```
-@article{PhysRevE.108.044308,
-  title = {Inference of epidemic dynamics from incomplete observations},
-  author = {Ghio, Davide and Aragon, Antoine L. M. and Biazzo, Indaco and Zdeborová, Lenka},
-  journal = {Phys. Rev. E},
-  volume = {108},
-  issue = {4},
-  pages = {044308},
-  numpages = {19},
-  year = {2023},
-  month = {Oct},
-  publisher = {American Physical Society},
-  doi = {10.1103/PhysRevE.108.044308},
-  url = {https://link.aps.org/doi/10.1103/PhysRevE.108.044308}
-}
-```
+Ghio, D., Aragon, A. L. M., Biazzo, I., & Zdeborová, L. (2023). Inference of epidemic dynamics from incomplete observations. Physical Review E, 108(4), 044308. [Link](https://doi.org/10.1103/PhysRevE.108.044308) 
